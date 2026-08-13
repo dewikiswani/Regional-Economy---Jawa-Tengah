@@ -2,6 +2,7 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(readxl)
+library(patchwork)
 
 # Data Ekonomi Provinsi
 # Baca Matriks Transaksi Inter-Industri Provinsi (Z_prov) 
@@ -467,6 +468,149 @@ tabel_multiplier_sektoral <- tabel_kuadran_sektoral %>%
 print("--- 10 SEKTOR MIKRO PERTAMA DENGAN TABEL MULTIPLIER LENGKAP ---")
 print(head(tabel_multiplier_sektoral, 10))
 
+# A. Top 15 Income Effect
+top15_income <- tabel_multiplier_sektoral %>%
+  arrange(desc(Income_Effect)) %>%
+  slice(1:15)
+
+# B. Top 15 Labour Effect
+top15_labour <- tabel_multiplier_sektoral %>%
+  arrange(desc(Labour_Effect)) %>%
+  slice(1:15)
+
+# C. Top 15 Import Effect
+top15_import <- tabel_multiplier_sektoral %>%
+  arrange(desc(Import_Effect)) %>%
+  slice(1:15)
+
+# ------------------------------------------------------------------------------
+# 2. PEMBUATAN PLOT MASING-MASING INDIKATOR
+# ------------------------------------------------------------------------------
+
+# Plot 1: Top 15 Income Effect
+p_income <- ggplot(top15_income, aes(x = reorder(nama_Sektor, Income_Effect), y = Income_Effect)) +
+  geom_col(fill = "#2e7d32", width = 0.75) +
+  geom_text(aes(label = round(Income_Effect, 4)), hjust = -0.15, size = 3) +
+  coord_flip() +
+  labs(
+    title = "Top 15 Sektor - Income Effect",
+    subtitle = "Dampak Pendapatan Rumah Tangga per Unit Permintaan Akhir",
+    x = NULL,
+    y = "Income Effect (Rp/Rp)"
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.2))) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 12, color = "#1b5e20"),
+    axis.text.y = element_text(size = 8.5)
+  )
+
+# Plot 2: Top 15 Labour Effect
+p_labour <- ggplot(top15_labour, aes(x = reorder(nama_Sektor, Labour_Effect), y = Labour_Effect)) +
+  geom_col(fill = "#1565c0", width = 0.75) +
+  geom_text(aes(label = round(Labour_Effect, 4)), hjust = -0.15, size = 3) +
+  coord_flip() +
+  labs(
+    title = "Top 15 Sektor - Labour Effect",
+    subtitle = "Penyerapan Tenaga Kerja per Unit Permintaan Akhir",
+    x = NULL,
+    y = "Labour Effect (Orang/Juta Rp)"
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.2))) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 12, color = "#0d47a1"),
+    axis.text.y = element_text(size = 8.5)
+  )
+
+# Plot 3: Top 15 Import Effect
+p_import <- ggplot(top15_import, aes(x = reorder(nama_Sektor, Import_Effect), y = Import_Effect)) +
+  geom_col(fill = "#c62828", width = 0.75) +
+  geom_text(aes(label = round(Import_Effect, 4)), hjust = -0.15, size = 3) +
+  coord_flip() +
+  labs(
+    title = "Top 15 Sektor - Import Effect (Kebocoran Ekonomi)",
+    subtitle = "Dampak Kebocoran Impor Input per Unit Permintaan Akhir",
+    x = NULL,
+    y = "Import Effect (Rp/Rp)"
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.2))) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 12, color = "#b71c1c"),
+    axis.text.y = element_text(size = 8.5)
+  )
+
+# ------------------------------------------------------------------------------
+# 3. GABUNGKAN DAN TAMPILKAN GRAFIK
+# ------------------------------------------------------------------------------
+
+# Penggabungan 3 Plot dalam 1 Tampilan Kolom (Atas-Tengah-Bawah)
+gabungan_plot <- p_income / p_labour / p_import +
+  plot_annotation(
+    title = "ANALISIS SEKTOR STRATEGIS REGIONAL (BUKECAP)",
+    subtitle = "Perbandingan 15 Sektor Tertinggi Berdasarkan Indikator Dampak Pengganda Ekonomi",
+    theme = theme(
+      plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
+      plot.subtitle = element_text(size = 11, hjust = 0.5)
+    )
+  )
+
+# Tampilkan di RStudio Plots Pane
+print(gabungan_plot)
+
+# ------------------------------------------------------------------------------
+# VISUALISASI PERBANDINGAN MULTIPLIER 
+# ------------------------------------------------------------------------------
+
+# output multiplier
+ggplot(tabel_multiplier_sektoral, aes(x = reorder(KSM, Output_Multiplier), y = Output_Multiplier, fill = nama_Sektor)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Rata-Rata Pengganda Output (Output Multiplier) per sektor",
+    x = "Sektor",
+    y = "Output Multiplier",
+    fill = "Sektor IO"
+  ) +
+  theme_minimal()
+
+# income effect
+ggplot(tabel_multiplier_sektoral, aes(x = reorder(KSM, Rata2_Income_Effect ), y = Rata2_Income_Effect , fill = Kuadran_KSM)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Rata-Rata Income Effect per KSM",
+    x = "Klasifikasi Sektor Makro (KSM)",
+    y = "Rata-Rata Income Effect",
+    fill = "Kuadran KSM"
+  ) +
+  theme_minimal()
+
+# labor effect
+ggplot(tabel_multiplier_sektoral, aes(x = reorder(KSM, Rata2_Labour_Effect), y = Rata2_Labour_Effect, fill = Kuadran_KSM)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Rata-Rata Labour Effect per KSM",
+    x = "Klasifikasi Sektor Makro (KSM)",
+    y = "Rata-Rata Labour Effect",
+    fill = "Kuadran KSM"
+  ) +
+  theme_minimal()
+
+# import effect
+ggplot(tabel_multiplier_sektoral, aes(x = reorder(KSM, Rata2_Import_Effect), y = Rata2_Import_Effect, fill = Kuadran_KSM)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Rata-Rata Import Effect per KSM",
+    x = "Klasifikasi Sektor Makro (KSM)",
+    y = "Rata-Rata Import Effect",
+    fill = "Kuadran KSM"
+  ) +
+  theme_minimal()
+
 
 
 # ------------------------------------------------------------------------------
@@ -596,53 +740,6 @@ ggplot(tabel_multiplier_ksm_rerata, aes(x = reorder(KSM, Rata2_Import_Effect), y
   theme_minimal()
 
 
-# output multiplier
-ggplot(tabel_multiplier_ksm_rerata, aes(x = reorder(KSM, Rata2_Output_Mult), y = Rata2_Output_Mult, fill = Kuadran_KSM)) +
-  geom_col() +
-  coord_flip() +
-  labs(
-    title = "Rata-Rata Pengganda Output (Output Multiplier) per KSM",
-    x = "Klasifikasi Sektor Makro (KSM)",
-    y = "Rata-Rata Output Multiplier",
-    fill = "Kuadran KSM"
-  ) +
-  theme_minimal()
-
-# income multiplier
-ggplot(tabel_multiplier_ksm_rerata, aes(x = reorder(KSM, Rata2_Income_Mult_T1 ), y = Rata2_Income_Mult_T1 , fill = Kuadran_KSM)) +
-  geom_col() +
-  coord_flip() +
-  labs(
-    title = "Rata-Rata Income Multiplier per KSM",
-    x = "Klasifikasi Sektor Makro (KSM)",
-    y = "Rata-Rata Income Multiplier",
-    fill = "Kuadran KSM"
-  ) +
-  theme_minimal()
-
-# labor multiplier
-ggplot(tabel_multiplier_ksm_rerata, aes(x = reorder(KSM, Rata2_Labour_Mult_T1), y = Rata2_Labour_Mult_T1, fill = Kuadran_KSM)) +
-  geom_col() +
-  coord_flip() +
-  labs(
-    title = "Rata-Rata Labour Multiplier per KSM",
-    x = "Klasifikasi Sektor Makro (KSM)",
-    y = "Rata-Rata Labour Multiplier",
-    fill = "Kuadran KSM"
-  ) +
-  theme_minimal()
-
-# import multiplier
-ggplot(tabel_multiplier_ksm_rerata, aes(x = reorder(KSM, Rata2_Import_Mult_T1), y = Rata2_Import_Mult_T1, fill = Kuadran_KSM)) +
-  geom_col() +
-  coord_flip() +
-  labs(
-    title = "Rata-Rata Import Multiplier per KSM",
-    x = "Klasifikasi Sektor Makro (KSM)",
-    y = "Rata-Rata Import Multiplier",
-    fill = "Kuadran KSM"
-  ) +
-  theme_minimal()
 
 # ------------------------------------------------------------------------------
 # IDENTIFIKASI SEKTOR STRATEGIS BERBASIS LAHAN (LAND-BASED SECTORS)
