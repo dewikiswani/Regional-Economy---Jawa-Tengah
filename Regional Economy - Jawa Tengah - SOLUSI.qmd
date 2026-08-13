@@ -1,0 +1,669 @@
+---
+title: "RegEco - Jawa Tengah"
+author: "RG-3"
+format: html
+editor: visual
+---
+
+## Quarto
+
+Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+
+```{r}
+
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# Baca Tabel IO
+io <- read.csv("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/analisis data/CIFOR-ICRAF indonesia/Solusi/Jawa Tengah/0_Regional Ekonomi/R - Regional Ekonomi Jateng/IO BUKECAP.csv", 
+               header=T,
+               sep=",",
+               stringsAsFactors = F)
+# baca tabel TK per sektor 
+tkSektor_prov <-  read.csv("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/analisis data/CIFOR-ICRAF indonesia/Solusi/Jawa Tengah/0_Regional Ekonomi/R - Regional Ekonomi Jateng/Estimasi Tenaga Kerja 2025.csv", 
+                           header=T,
+                           sep=",",
+                           stringsAsFactors = F) 
+
+pdrb_bukecap <- read.csv("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/analisis data/CIFOR-ICRAF indonesia/Solusi/Jawa Tengah/0_Regional Ekonomi/R - Regional Ekonomi Jateng/PDRB ADHK BUKECAP.csv", 
+               header=T,
+               sep=",",
+               stringsAsFactors = F)
+
+# Penyesuaian nama Input kolom yang dibutuhkan
+jml_sektor <- 66
+kolom_Sektor <- paste0("X", 1:66) # Membuat daftar nama kolom x1, x2, ..., x66 secara otomatis
+namaSektor <- as.vector(io[1:jml_sektor,"Nama.Sektor"])
+kolom_FD <- paste0("X309")
+kolom_TOutput <- "X700"
+baris_totInput <- 74
+baris_totInputPrimer <- 73
+baris_pjkProduk <- 68
+
+
+
+# pembacaan matrix A
+matrixA <- io %>%
+  slice(1:jml_sektor) %>%       # Mengambil baris 1 hingga 66
+  select(kolom_Sektor)        # Mengambil rentang kolom dari x1 sampai x66
+
+Z_prov <- data.matrix(matrixA)
+
+total_input_antara <- colSums(Z_prov) #total input antara
+total_input_primer <- io[baris_totInputPrimer,kolom_Sektor] #total input primer
+total_input <- io[baris_totInput,kolom_Sektor] #total input primer
+
+# Total Output Sektor di Provinsi (X_prov)
+X_prov <- as.numeric(io[74,kolom_Sektor])
+X_prov[is.nan(X_prov)] <- 0 #jika Nan diganti 0 
+
+# Matriks Koefisien Teknis Provinsi (A_prov = Z_prov / X_prov)
+A_prov <- sweep(Z_prov, 2, X_prov, FUN = "/")
+A_prov[is.nan(A_prov)] <- 0 #jika Nan diganti 0 
+
+# Menciptakan matriks identitas (I) berukuran n x n
+nA_prov <- nrow(A_prov)
+matrixI <- diag(nA_prov)
+
+# Menghitung (I - A) dan mencari Invers Leontief: (I - A)^(-1)
+I_minus_A <- matrixI - A_prov
+Leontief_Inverse <- solve(I_minus_A)
+sum(colSums(Leontief_Inverse))
+
+
+#kolom final demand
+fd <- io[1:jml_sektor,kolom_FD]
+
+#Perkalian Matriks: (I - A)^-1 %*% FD
+# Menggunakan operator %*% untuk perkalian aljabar linier (bukan * biasa)
+matrix_X <- Leontief_Inverse %*% fd
+
+#validasi total_output_baru (matrix X) = total_output io
+total_output_io <- io[1:jml_sektor,kolom_TOutput]
+validasi_output <- matrix_X/total_output_io*100
+
+# proposi fd terhadap output
+fdProp <- fd/total_output_io
+fdProp[is.nan(fdProp) | is.infinite(fdProp)] <- 0
+
+#validasi Proporsi NTB/total input * (I - A)^-1 %*% FD = total input primer di IO
+totInputPrimer <- as.numeric(io[baris_totInputPrimer,kolom_Sektor])
+totInput <- as.numeric(io[baris_totInput,kolom_Sektor])
+ntbProp <- totInputPrimer/totInput
+ntbProp[is.nan(ntbProp) | is.infinite(ntbProp)] <- 0
+matrix_X <- as.numeric(matrix_X)
+kali_NTB <- as.numeric(matrix_X * ntbProp)
+validasi_NtbProp <- kali_NTB/totInputPrimer*100
+
+#validasi Proporsi NTB/total input * (I - A)^-1 %*% FD = pdrb di IO (NTB + pajak atas produk)
+totInputPrimer <- as.numeric(io[baris_totInputPrimer,kolom_Sektor])
+pdrb_IO <- totInputPrimer 
+
+#validasi (I - A)^-1 %*% FD %*% Proporsi NTB/total input *= pdrb di IO (NTB + pajak atas produk)
+validasi_PDRB_IO <- 100 - (kali_NTB/pdrb_IO*100)
+validasi_PDRB_IO[is.nan(validasi_PDRB_IO) | is.infinite(validasi_PDRB_IO)] <- 0
+mean(validasi_PDRB_IO)
+
+
+
+
+# ==============================================================================
+# MENGHITUNG Backward dan Forward Linkage
+# ==============================================================================
+# Direct Backward Linkage (DBL)  (Penjumlahan Kolom Matriks A)
+dbl <- colSums(A_prov)
+# Total Backward Linkage (TBL)  = Sum per Kolom pada Invers Leontief
+tbl <- colSums(Leontief_Inverse)
+# Indeks Total Backward Linkage (ITBL) / Indeks Daya Penyebaran Total (IDP)
+itbl <- tbl / mean(tbl)
+
+# Direct Forward Linkage (DFL)  (Penjumlahan Baris Matriks A)
+dfl <- rowSums(A_prov)
+# Total Forward Linkage (TFL)  = Sum per Baris pada Invers Leontief
+tfl <- rowSums(Leontief_Inverse)
+# Indeks Total Forward Linkage (ITFL) / Indeks Derajat Kepekaan Total (IDK)
+itfl <- tfl / mean(tfl)
+
+
+tabel_linkage <- data.frame(
+  id_Sektor = kolom_Sektor,
+  nama_Sektor  = namaSektor,
+  TBL = round(tbl, 4),
+  TFL = round(tfl, 4),
+  ITBL = round(itbl, 4),
+  ITFL = round(itfl, 4)
+)
+
+# ------------------------------------------------------------------------------
+# PENGELOMPOKAN KE DALAM 4 KUADRAN SEKTOR EKONOMI
+# ------------------------------------------------------------------------------
+# masih menerapkan nilai 1, belum tau landasan pemilihan benchmarknya
+
+tabel_kuadran <- tabel_linkage %>%
+  mutate(
+    Kuadran = case_when(
+      ITBL > 1 & ITFL > 1  ~ "K1 (BL Tinggi, FL Tinggi)",
+      ITBL > 1 & ITFL <= 1 ~ "K2 (BL Tinggi, FL Rendah)",
+      ITBL <= 1 & ITFL > 1 ~ "K3 (BL Rendah, FL Tinggi)",
+      TRUE               ~ "K4 (BL Rendah, FL Rendah)"
+    ),
+    Kategori = case_when(
+      ITBL > 1 & ITFL > 1  ~ "Sektor Kunci (Key Sector)",
+      ITBL > 1 & ITFL <= 1 ~ "Sektor Pendorong Hulu (Backward-Oriented)",
+      ITBL <= 1 & ITFL > 1 ~ "Sektor Pendukung Hilir (Forward-Oriented)",
+      TRUE               ~ "Sektor Lemah / Terisolasi (Weak Sector)"
+    )
+  )
+
+# Menampilkan rekapitulasi jumlah sektor per kuadran
+rekap_kuadran <- tabel_kuadran %>%
+  group_by(Kuadran, Kategori) %>%
+  summarise(Jumlah_Sektor = n(), .groups = "drop")
+print("--- RINGKASAN JUMLAH SEKTOR PER KUADRAN ---")
+print(rekap_kuadran)
+
+# Menampilkan daftar Sektor Kunci (Kuadran 1)
+sektor_kunci1 <- tabel_kuadran %>%
+  filter(Kuadran == "K1 (BL Tinggi, FL Tinggi)")
+print("--- DAFTAR SEKTOR KUNCI (KUADRAN 1) ---")
+print(sektor_kunci1)
+
+# Urutkan sektor berdasarkan ITBL tertinggi ke terendah
+sektor_kunci1 <- sektor_kunci1[order(-sektor_kunci1$ITBL), ]
+
+# Menampilkan daftar Sektor Kunci (Kuadran 2)
+sektor_kunci2 <- tabel_kuadran %>%
+  filter(Kuadran == "K2 (BL Tinggi, FL Rendah)")
+print("--- DAFTAR SEKTOR KUNCI (KUADRAN 2) ---")
+print(sektor_kunci2)
+
+# Menampilkan daftar Sektor Kunci (Kuadran 3)
+sektor_kunci3 <- tabel_kuadran %>%
+  filter(Kuadran == "K3 (BL Rendah, FL Tinggi)")
+print("--- DAFTAR SEKTOR KUNCI (KUADRAN 3) ---")
+print(sektor_kunci3)
+
+# Menampilkan daftar Sektor Kunci (Kuadran 4)
+sektor_kunci4 <- tabel_kuadran %>%
+  filter(Kuadran == "K4 (BL Rendah, FL Rendah)")
+print("--- DAFTAR SEKTOR KUNCI (KUADRAN 4) ---")
+print(sektor_kunci4)
+
+
+# ------------------------------------------------------------------------------
+# VISUALISASI DIAGRAM KUADRAN (PLOT SCATTER)
+# ------------------------------------------------------------------------------
+
+ggplot(tabel_kuadran, aes(x = ITBL, y = ITFL, label = nama_Sektor)) +
+  geom_point(aes(color = Kuadran), size = 3) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "red") +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "red") +
+  geom_text(vjust = -0.7, size = 2.5, check_overlap = TRUE) +
+  labs(
+    title = "Diagram Kuadran Backward & Forward Linkage Sektor Ekonomi",
+    subtitle = "Garis Merah Putus-putus Menunjukkan Batas Indeks = 1.00",
+    x = "Indeks Total Backward Linkage (ITBL) / Indeks Daya Penyebaran (IDP)",
+    y = "Indeks Total Forward Linkage (ITFL) / Indeks Derajat Kepekaan (IDK)"
+  ) +
+  theme_minimal()
+
+
+# ==============================================================================
+# ANALISIS KSM (KLASIFIKASI SEKTOR MAKRO)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# ENGELOMPOKAN KSM PADA TINGKAT SEKTOR MIKRO
+# ------------------------------------------------------------------------------
+
+# Ekstraksi nama KSM dari Kolom D (Kolom ke-5) untuk 66 sektor
+ksm_sektor <- io[1:jml_sektor, 5] #kategori berdasarkan 17 sektor besar, jika pakai 2 digit sektor pakai kolom no 4
+
+# Menambahkan kolom KSM ke tabel_kuadran yang sudah Anda buat
+tabel_kuadran_sektoral <- tabel_kuadran %>%
+  mutate(KSM = ksm_sektor) %>%
+  select(nama_Sektor, KSM, TBL, TFL, ITBL, ITFL, Kuadran, Kategori)
+
+# A. Ringkasan Rata-rata Nilai Linkage per KSM
+ringkasan_ksm_profil <- tabel_kuadran_sektoral %>%
+  group_by(KSM) %>%
+  summarise(
+    Jumlah_Sektor = n(),
+    Rata2_ITBL    = round(mean(ITBL), 4),
+    Rata2_ITFL    = round(mean(ITFL), 4),
+    .groups       = "drop"
+  )
+
+# B. Distribusi Penyebaran Kuadran (K1, K2, K3, K4) pada Tiap KSM
+distribusi_kuadran_ksm <- tabel_kuadran_sektoral %>%
+  count(KSM, Kuadran) %>%
+  pivot_wider(names_from = Kuadran, values_from = n, values_fill = 0)
+
+# C. Tabel Ringkasan Profil KSM
+profil_ksm_lengkap <- left_join(ringkasan_ksm_profil, distribusi_kuadran_ksm, by = "KSM")
+
+print("--- PROFIL RINGKASAN SEKTOR MIKRO DALAM KSM ---")
+print(profil_ksm_lengkap)
+
+
+# ------------------------------------------------------------------------------
+# AGREGASI MATRIKS I-O KE TINGKAT KSM (ANALYSIS MATRIKS MAKRO)
+# ------------------------------------------------------------------------------
+
+# Mengidentifikasi daftar KSM Unik
+ksm_unik <- unique(ksm_sektor)
+n_ksm    <- length(ksm_unik)
+
+# Membuat Matriks Pemetaan / Agregasi M (Ukuran: n_ksm x jml_sektor)
+M <- matrix(0, nrow = n_ksm, ncol = jml_sektor)
+rownames(M) <- ksm_unik
+colnames(M) <- kolom_Sektor
+
+for (i in 1:n_ksm) {
+  M[i, ksm_sektor == ksm_unik[i]] <- 1
+}
+
+# Agregasi Matriks Transaksi (Z_ksm) dan Total Output (X_ksm)
+Z_ksm <- M %*% Z_prov %*% t(M)
+X_ksm <- as.vector(M %*% X_prov)
+
+# Matriks Koefisien Teknis KSM (A_ksm = Z_ksm / X_ksm)
+A_ksm <- sweep(Z_ksm, 2, X_ksm, FUN = "/")
+A_ksm[is.nan(A_ksm) | is.infinite(A_ksm)] <- 0
+
+# Matriks Invers Leontief KSM (Leontief_Inverse_ksm)
+I_ksm <- diag(n_ksm)
+I_minus_A_ksm <- I_ksm - A_ksm
+Leontief_Inverse_ksm <- solve(I_minus_A_ksm)
+
+
+# ------------------------------------------------------------------------------
+# MENGHITUNG BACKWARD & FORWARD LINKAGE untuk (KSM)
+# ------------------------------------------------------------------------------
+
+# Total Backward & Forward Linkage Makro
+tbl_ksm <- colSums(Leontief_Inverse_ksm)
+tfl_ksm <- rowSums(Leontief_Inverse_ksm)
+
+# Indeks Total Backward & Forward Linkage Makro (ITBL & ITFL)
+itbl_ksm <- tbl_ksm / mean(tbl_ksm)
+itfl_ksm <- tfl_ksm / mean(tfl_ksm)
+
+# Membentuk Tabel Kuadran KSM Makro
+tabel_kuadran_ksm <- data.frame(
+  Nama_KSM     = ksm_unik,
+  Total_Output = round(X_ksm, 2),
+  TBL_Makro    = round(tbl_ksm, 4),
+  TFL_Makro    = round(tfl_ksm, 4),
+  ITBL_Makro   = round(itbl_ksm, 4),
+  ITFL_Makro   = round(itfl_ksm, 4)
+) %>%
+  mutate(
+    Kuadran = case_when(
+      ITBL_Makro > 1 & ITFL_Makro > 1  ~ "K1 (BL Tinggi, FL Tinggi)",
+      ITBL_Makro > 1 & ITFL_Makro <= 1 ~ "K2 (BL Tinggi, FL Rendah)",
+      ITBL_Makro <= 1 & ITFL_Makro > 1 ~ "K3 (BL Rendah, FL Tinggi)",
+      TRUE                             ~ "K4 (BL Rendah, FL Rendah)"
+    ),
+    Kategori = case_when(
+      ITBL_Makro > 1 & ITFL_Makro > 1  ~ "Sektor Kunci (Key Sector)",
+      ITBL_Makro > 1 & ITFL_Makro <= 1 ~ "Sektor Pendorong Hulu (Backward-Oriented)",
+      ITBL_Makro <= 1 & ITFL_Makro > 1 ~ "Sektor Pendukung Hilir (Forward-Oriented)",
+      TRUE                             ~ "Sektor Lemah / Terisolasi (Weak Sector)"
+    )
+  )
+
+print("--- HASIL ANALISIS KUADRAN KSM MAKRO ---")
+print(tabel_kuadran_ksm)
+
+
+
+# ------------------------------------------------------------------------------
+# REKAPITULASI & SEKTOR KUNCI MAKRO (KSM)
+# ------------------------------------------------------------------------------
+
+# Rekapitulasi Jumlah KSM per Kuadran
+rekap_ksm <- tabel_kuadran_ksm %>%
+  group_by(Kuadran, Kategori) %>%
+  summarise(Jumlah_KSM = n(), .groups = "drop")
+
+print("--- RINGKASAN JUMLAH KSM PER KUADRAN ---")
+print(rekap_ksm)
+
+# Tampilkan Daftar KSM Kunci (Kuadran 1 Makro)
+ksm_kunci1 <- tabel_kuadran_ksm %>% filter(Kuadran == "K1 (BL Tinggi, FL Tinggi)")
+print("--- DAFTAR SEKTOR MAKRO KUNCI (K1-KSM) ---")
+print(ksm_kunci1)
+
+# Tampilkan Daftar KSM Kunci (Kuadran 1 Makro)
+ksm_kunci2 <- tabel_kuadran_ksm %>% filter(Kuadran == "K2 (BL Tinggi, FL Rendah)")
+print("--- DAFTAR SEKTOR MAKRO KUNCI (K2-KSM) ---")
+print(ksm_kunci2)
+
+
+# ------------------------------------------------------------------------------
+# VISUALISASI DIAGRAM KUADRAN KSM MAKRO (PLOT SCATTER)
+# ------------------------------------------------------------------------------
+
+ggplot(tabel_kuadran_ksm, aes(x = ITBL_Makro, y = ITFL_Makro, label = Nama_KSM)) +
+  geom_point(aes(color = Kuadran, size = Total_Output), alpha = 0.85) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "red") +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "red") +
+  geom_text(vjust = -0.8, size = 3, fontface = "bold", check_overlap = FALSE) +
+  scale_size_continuous(name = "Total Output (Rp)", labels = scales::comma) +
+  labs(
+    title = "Diagram Kuadran Klasifikasi Sektor Makro (KSM)",
+    subtitle = "Garis Merah Putus-putus Menunjukkan Batas Benchmark Indeks = 1.00",
+    x = "Indeks Total Backward Linkage (ITBL) / Indeks Daya Penyebaran (IDP)",
+    y = "Indeks Total Forward Linkage (ITFL) / Indeks Derajat Kepekaan (IDK)"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+
+
+# ==============================================================================
+# MENGHITUNG MULTIPLIERS (OUTPUT, INCOME, LABOUR, IMPORT)
+# TINGKAT SEKTORAL DAN RATA-RATA KSM (SEKTOR MAKRO)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# PERSIAPAN DATA KOEFISIEN INPUT PRIMER
+# ------------------------------------------------------------------------------
+# Catatan: Sesuaikan indeks baris pada file IO Anda jika berbeda.
+baris_upah  <- 70  # Baris Kompensasi Tenaga Kerja / Gaji & Upah
+baris_impor <- 69  # Baris Impor / Input Luar Daerah
+
+
+# A. Koefisien Pendapatan Langsung (h)
+upah_gaji <- as.numeric(io[baris_upah, kolom_Sektor])
+upah_gaji[is.na(upah_gaji)] <- 0
+h <- upah_gaji / X_prov
+h[is.nan(h) | is.infinite(h)] <- 0
+h_diag <- diag(h)
+
+# B. Koefisien Tenaga Kerja Langsung (w)
+tk_prov <- as.numeric(tkSektor_prov[, "BUKECAP"])
+tk_prov[is.na(tk_prov)] <- 0
+w <- tk_prov / X_prov
+w[is.nan(w) | is.infinite(w)] <- 0
+w_diag <- diag(w)
+
+# C. Koefisien Impor Langsung (m)
+impor <- as.numeric(io[baris_impor, kolom_Sektor])
+impor[is.na(impor)] <- 0
+im <- impor / X_prov
+im[is.nan(im) | is.infinite(im)] <- 0
+im_diag <- diag(im)
+
+
+# ------------------------------------------------------------------------------
+# PERHITUNGAN MULTIPLIER & EFFECT LEVEL 66 SEKTOR (SEKTORAL)
+# ------------------------------------------------------------------------------
+
+# 1) Output Multiplier (Pengganda Output)
+output_mult <- colSums(Leontief_Inverse) # sama dengan TBL
+
+# 2) Income Multiplier & Effect (Pendapatan)
+income_effect <- h_diag %*% Leontief_Inverse
+# income_mult <- colSums(income_effect) #sama dengan income multiplier di excel 
+
+# 3) Labour Multiplier & Effect (Tenaga Kerja)
+labour_effect <- w_diag %*% Leontief_Inverse
+# labour_mult   <- colSums(labour_effect)
+
+# 4) Import Multiplier & Effect (Kebocoran Impor)
+import_effect <- im_diag %*% Leontief_Inverse
+# import_mult   <- colSums(import_effect)
+
+# ------------------------------------------------------------------------------
+# PERHITUNGAN DAMPAK TOTAL (EFFECTS) & MULTIPLIER TIPE I
+# ------------------------------------------------------------------------------
+
+# A. Dampak Total (Total Effects per 1 unit Permintaan Akhir)
+tot_income_effect <- as.vector(colSums(h_diag %*% Leontief_Inverse))   # Total Income Effect (Rp/Rp)
+tot_labour_effect <- as.vector(colSums(w_diag %*% Leontief_Inverse))   # Total Labour Effect (Orang/Rp)
+tot_import_effect <- as.vector(colSums(im_diag %*% Leontief_Inverse))  # Total Import Effect (Kebocoran)
+
+# B. Multiplier Tipe I (Rasio Kelipatan terhadap Koefisien Langsung)
+type1_income_mult <- ifelse(h > 0, tot_income_effect / h, 0)
+type1_labour_mult <- ifelse(w > 0, tot_labour_effect / w, 0)
+type1_import_mult <- ifelse(im > 0, tot_import_effect / im, 0)
+
+# ------------------------------------------------------------------------------
+# PENGGABUNGAN KE TABEL KUADRAN SEKTORAL (66 SEKTOR MIKRO)
+# ------------------------------------------------------------------------------
+# Menggabungkan Hasil Multiplier Sektoral ke Tabel Kuadran Sektoral
+tabel_multiplier_sektoral <- tabel_kuadran_sektoral %>%
+  mutate(
+    # Koefisien Langsung (Input Primer per Unit Output)
+    Koef_Upah_h          = round(h, 6),
+    Koef_TK_w            = round(w, 6),
+    Koef_Impor_m         = round(im, 6),
+    
+    # Pengganda Output
+    Output_Multiplier    = round(output_mult, 4),
+    
+    # Dampak Total (Total Effects)
+    Income_Effect        = round(tot_income_effect, 4),
+    Labour_Effect        = round(tot_labour_effect, 4),
+    Import_Effect        = round(tot_import_effect, 4),
+    
+    # Multiplier Tipe I (Kelipatan)
+    Income_Multiplier_T1 = round(type1_income_mult, 4),
+    Labour_Multiplier_T1 = round(type1_labour_mult, 4),
+    Import_Multiplier_T1 = round(type1_import_mult, 4)
+  )
+
+print("--- 10 SEKTOR MIKRO PERTAMA DENGAN TABEL MULTIPLIER LENGKAP ---")
+print(head(tabel_multiplier_sektoral, 10))
+
+
+
+# ------------------------------------------------------------------------------
+# ANALISIS RATA-RATA MULTIPLIER TINGKAT KSM (SEKTOR MAKRO)
+# ------------------------------------------------------------------------------
+
+tabel_multiplier_ksm_rerata <- tabel_multiplier_sektoral %>%
+  group_by(KSM) %>%
+  summarise(
+    Jumlah_Sektor          = n(),
+    Rata2_ITBL             = round(mean(ITBL), 4),
+    Rata2_ITFL             = round(mean(ITFL), 4),
+    Rata2_Output_Mult      = round(mean(Output_Multiplier), 4),
+    Rata2_Income_Effect    = round(mean(Income_Effect), 4),
+    Rata2_Labour_Effect    = round(mean(Labour_Effect), 4),
+    Rata2_Import_Effect    = round(mean(Import_Effect), 4),
+    Rata2_Income_Mult_T1   = round(mean(Income_Multiplier_T1), 4),
+    Rata2_Labour_Mult_T1   = round(mean(Labour_Multiplier_T1), 4),
+    Rata2_Import_Mult_T1   = round(mean(Import_Multiplier_T1), 4),
+    .groups                = "drop"
+  ) %>%
+  mutate(
+    Kuadran_KSM = case_when(
+      Rata2_ITBL > 1 & Rata2_ITFL > 1  ~ "K1 (Sektor Kunci)",
+      Rata2_ITBL > 1 & Rata2_ITFL <= 1 ~ "K2 (Pendorong Hulu)",
+      Rata2_ITBL <= 1 & Rata2_ITFL > 1 ~ "K3 (Pendukung Hilir)",
+      TRUE                             ~ "K4 (Terisolasi/Lemah)"
+    )
+  )
+
+print("--- RATA-RATA MULTIPLIER TINGKAT KSM MAKRO ---")
+print(tabel_multiplier_ksm_rerata)
+
+
+# ------------------------------------------------------------------------------
+# IDENTIFIKASI SEKTOR & KSM STRATEGIS WILAYAH
+# ------------------------------------------------------------------------------
+# Kriteria Sektor/KSM Strategis:
+# 1. Berada di Kuadran 1 (ITBL > 1 & ITFL > 1) ATAU Kuadran 2 (ITBL > 1)
+# 2. Memiliki Rata-Rata Output Multiplier DI ATAS Rata-Rata Perekonomian
+# 3. Memiliki Kebocoran Impor (Import Effect) DI BAWAH Rata-Rata Perekonomian
+
+mean_out_gen <- mean(tabel_multiplier_sektoral$Output_Multiplier)
+mean_imp_gen <- mean(tabel_multiplier_sektoral$Import_Effect)
+
+# Identifikasi Sektor Mikro Strategis
+sektor_strategis <- tabel_multiplier_sektoral %>%
+  filter(
+    ITBL > 1, # Daya tarik hulu kuat
+    Output_Multiplier >= mean_out_gen, # Pengganda output tinggi
+    Import_Effect <= mean_imp_gen      # Kebocoran impor rendah
+  ) %>%
+  select(nama_Sektor, KSM, ITBL, ITFL, Kuadran, Output_Multiplier, Income_Effect, Labour_Effect, Import_Effect)
+
+print("--- DAFTAR SEKTOR MIKRO STRATEGIS WILAYAH ---")
+print(sektor_strategis)
+
+# Sektor Berbasis Lahan (Land-Based Sectors)
+sektor_lahan <- tabel_multiplier_sektoral %>%
+  filter(
+    !is.na(KSM) & grepl("Pertanian|Kehutanan|Perkebunan|Peternakan|Perikanan|Padi|Tanaman", KSM, ignore.case = TRUE)
+  )
+
+print("--- DAFTAR SEKTOR BERBASIS LAHAN ---")
+print(sektor_lahan %>% select(nama_Sektor, KSM, Kuadran, Output_Multiplier, Income_Effect, Labour_Effect, Import_Effect))
+
+# Identifikasi KSM Makro Strategis
+ksm_strategis <- tabel_multiplier_ksm_rerata %>%
+  filter(
+    Rata2_ITBL > 1,# Daya tarik hulu kuat
+    Rata2_Output_Mult >= mean(Rata2_Output_Mult)# Pengganda output tinggi
+  )
+
+print("--- DAFTAR KSM MAKRO STRATEGIS WILAYAH ---")
+print(ksm_strategis)
+
+# ------------------------------------------------------------------------------
+# VISUALISASI PERBANDINGAN MULTIPLIER KSM
+# ------------------------------------------------------------------------------
+
+# output multiplier
+ggplot(tabel_multiplier_ksm_rerata, aes(x = reorder(KSM, Rata2_Output_Mult), y = Rata2_Output_Mult, fill = Kuadran_KSM)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Rata-Rata Pengganda Output (Output Multiplier) per KSM",
+    x = "Klasifikasi Sektor Makro (KSM)",
+    y = "Rata-Rata Output Multiplier",
+    fill = "Kuadran KSM"
+  ) +
+  theme_minimal()
+
+# income effect
+ggplot(tabel_multiplier_ksm_rerata, aes(x = reorder(KSM, Rata2_Income_Effect ), y = Rata2_Income_Effect , fill = Kuadran_KSM)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Rata-Rata Income Effect per KSM",
+    x = "Klasifikasi Sektor Makro (KSM)",
+    y = "Rata-Rata Income Effect",
+    fill = "Kuadran KSM"
+  ) +
+  theme_minimal()
+
+# labor effect
+ggplot(tabel_multiplier_ksm_rerata, aes(x = reorder(KSM, Rata2_Labour_Effect), y = Rata2_Labour_Effect, fill = Kuadran_KSM)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Rata-Rata Labour Effect per KSM",
+    x = "Klasifikasi Sektor Makro (KSM)",
+    y = "Rata-Rata Labour Effect",
+    fill = "Kuadran KSM"
+  ) +
+  theme_minimal()
+
+# import effect
+ggplot(tabel_multiplier_ksm_rerata, aes(x = reorder(KSM, Rata2_Import_Effect), y = Rata2_Import_Effect, fill = Kuadran_KSM)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Rata-Rata Import Effect per KSM",
+    x = "Klasifikasi Sektor Makro (KSM)",
+    y = "Rata-Rata Import Effect",
+    fill = "Kuadran KSM"
+  ) +
+  theme_minimal()
+
+
+# output multiplier
+ggplot(tabel_multiplier_ksm_rerata, aes(x = reorder(KSM, Rata2_Output_Mult), y = Rata2_Output_Mult, fill = Kuadran_KSM)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Rata-Rata Pengganda Output (Output Multiplier) per KSM",
+    x = "Klasifikasi Sektor Makro (KSM)",
+    y = "Rata-Rata Output Multiplier",
+    fill = "Kuadran KSM"
+  ) +
+  theme_minimal()
+
+# income multiplier
+ggplot(tabel_multiplier_ksm_rerata, aes(x = reorder(KSM, Rata2_Income_Mult_T1 ), y = Rata2_Income_Mult_T1 , fill = Kuadran_KSM)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Rata-Rata Income Multiplier per KSM",
+    x = "Klasifikasi Sektor Makro (KSM)",
+    y = "Rata-Rata Income Multiplier",
+    fill = "Kuadran KSM"
+  ) +
+  theme_minimal()
+
+# labor multiplier
+ggplot(tabel_multiplier_ksm_rerata, aes(x = reorder(KSM, Rata2_Labour_Mult_T1), y = Rata2_Labour_Mult_T1, fill = Kuadran_KSM)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Rata-Rata Labour Multiplier per KSM",
+    x = "Klasifikasi Sektor Makro (KSM)",
+    y = "Rata-Rata Labour Multiplier",
+    fill = "Kuadran KSM"
+  ) +
+  theme_minimal()
+
+# import multiplier
+ggplot(tabel_multiplier_ksm_rerata, aes(x = reorder(KSM, Rata2_Import_Mult_T1), y = Rata2_Import_Mult_T1, fill = Kuadran_KSM)) +
+  geom_col() +
+  coord_flip() +
+  labs(
+    title = "Rata-Rata Import Multiplier per KSM",
+    x = "Klasifikasi Sektor Makro (KSM)",
+    y = "Rata-Rata Import Multiplier",
+    fill = "Kuadran KSM"
+  ) +
+  theme_minimal()
+
+# ------------------------------------------------------------------------------
+# IDENTIFIKASI SEKTOR STRATEGIS BERBASIS LAHAN (LAND-BASED SECTORS)
+# ------------------------------------------------------------------------------
+# Filter Sektor Berbasis Lahan (Pertanian, Kehutanan, Perkebunan, Peternakan, Perikanan)
+sektor_lahan <- tabel_multiplier_sektoral %>%
+  filter(!is.na(KSM) & grepl("Pertanian|Kehutanan|Perkebunan|Peternakan|Perikanan", KSM, ignore.case = TRUE) ) %>%
+  select(nama_Sektor, KSM, ITBL, ITFL, Kuadran, Output_Multiplier, Income_Effect, Labour_Effect, Import_Effect)
+
+print("--- ANALISIS KHUSUS SEKTOR BERBASIS LAHAN ---")
+print(sektor_lahan)
+
+# ------------------------------------------------------------------------------
+# VISUALISASI DIAGRAM KUADRAN (PLOT SCATTER)
+# ------------------------------------------------------------------------------
+
+ggplot(sektor_lahan, aes(x = ITBL, y = ITFL, label = nama_Sektor)) +
+  geom_point(aes(color = Kuadran), size = 3) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "red") +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "red") +
+  geom_text(vjust = -0.7, size = 2.5, check_overlap = TRUE) +
+  labs(
+    title = "Diagram Kuadran Backward & Forward Linkage Sektor Ekonomi - Sektor Lahan",
+    subtitle = "Garis Merah Putus-putus Menunjukkan Batas Indeks = 1.00",
+    x = "Indeks Total Backward Linkage (ITBL) / Indeks Daya Penyebaran (IDP)",
+    y = "Indeks Total Forward Linkage (ITFL) / Indeks Derajat Kepekaan (IDK)"
+  ) +
+  theme_minimal()
+
+
+
+```
