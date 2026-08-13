@@ -560,60 +560,6 @@ gabungan_plot <- p_income / p_labour / p_import +
 print(gabungan_plot)
 
 # ------------------------------------------------------------------------------
-# VISUALISASI PERBANDINGAN MULTIPLIER 
-# ------------------------------------------------------------------------------
-
-# output multiplier
-ggplot(tabel_multiplier_sektoral, aes(x = reorder(KSM, Output_Multiplier), y = Output_Multiplier, fill = nama_Sektor)) +
-  geom_col() +
-  coord_flip() +
-  labs(
-    title = "Rata-Rata Pengganda Output (Output Multiplier) per sektor",
-    x = "Sektor",
-    y = "Output Multiplier",
-    fill = "Sektor IO"
-  ) +
-  theme_minimal()
-
-# income effect
-ggplot(tabel_multiplier_sektoral, aes(x = reorder(KSM, Rata2_Income_Effect ), y = Rata2_Income_Effect , fill = Kuadran_KSM)) +
-  geom_col() +
-  coord_flip() +
-  labs(
-    title = "Rata-Rata Income Effect per KSM",
-    x = "Klasifikasi Sektor Makro (KSM)",
-    y = "Rata-Rata Income Effect",
-    fill = "Kuadran KSM"
-  ) +
-  theme_minimal()
-
-# labor effect
-ggplot(tabel_multiplier_sektoral, aes(x = reorder(KSM, Rata2_Labour_Effect), y = Rata2_Labour_Effect, fill = Kuadran_KSM)) +
-  geom_col() +
-  coord_flip() +
-  labs(
-    title = "Rata-Rata Labour Effect per KSM",
-    x = "Klasifikasi Sektor Makro (KSM)",
-    y = "Rata-Rata Labour Effect",
-    fill = "Kuadran KSM"
-  ) +
-  theme_minimal()
-
-# import effect
-ggplot(tabel_multiplier_sektoral, aes(x = reorder(KSM, Rata2_Import_Effect), y = Rata2_Import_Effect, fill = Kuadran_KSM)) +
-  geom_col() +
-  coord_flip() +
-  labs(
-    title = "Rata-Rata Import Effect per KSM",
-    x = "Klasifikasi Sektor Makro (KSM)",
-    y = "Rata-Rata Import Effect",
-    fill = "Kuadran KSM"
-  ) +
-  theme_minimal()
-
-
-
-# ------------------------------------------------------------------------------
 # ANALISIS RATA-RATA MULTIPLIER TINGKAT KSM (SEKTOR MAKRO)
 # ------------------------------------------------------------------------------
 
