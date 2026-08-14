@@ -6,9 +6,10 @@ editor: visual
 ---
 
 ## Regional Economy Simulation
+
 Untuk mengestimasi dampak ekonomi dari skenario perubahan tutupan lahan spasial terhadap PDRB regional, penelitian ini menerapkan pendekatan Land-Extended Input-Output (LEIO) yang dikombinasikan dengan Mixed Endogenous-Exogenous Input-Output Model (Miller & Blair, 2009). Kerangka kerja hubungan antara koefisien penggunaan lahan fisik dan transaksi moneter mengacu pada metode Land Requirement Coefficient yang dikembangkan oleh Hubacek & Sun (2001) dan Hubacek & Vazquez (2002).
 
- Mengingat output sektor berbasis lahan dibatasi secara fisik oleh kapasitas tutupan lahannya, perubahan output sektor tersebut (ditransformasikan dari perkalian perubahan luas lahan dengan produktivitas lahan . Untuk menghindari estimasi ganda (overestimation) pada matriks Kebalikan Leontief, status output sektor lahan dijajarkan secara eksogen mengikuti formulasi Mixed I-O (Papadas & Dahl, 1999; Miller & Blair, 2009), sedangkan estimasi PDRB sektor non-lahan dihitung secara terintegrasi.
+Mengingat output sektor berbasis lahan dibatasi secara fisik oleh kapasitas tutupan lahannya, perubahan output sektor tersebut (ditransformasikan dari perkalian perubahan luas lahan dengan produktivitas lahan . Untuk menghindari estimasi ganda (overestimation) pada matriks Kebalikan Leontief, status output sektor lahan dijajarkan secara eksogen mengikuti formulasi Mixed I-O (Papadas & Dahl, 1999; Miller & Blair, 2009), sedangkan estimasi PDRB sektor non-lahan dihitung secara terintegrasi.
 
 ## Data Input and Reading
 
@@ -18,6 +19,7 @@ library(tidyr)
 library(ggplot2)
 library(readxl)
 library(DT)
+library(patchwork)
 
 # Data Ekonomi Provinsi
 # Baca Matriks Transaksi Inter-Industri Provinsi (Z_prov) 
@@ -32,12 +34,14 @@ DeskripsiSektor <- read.csv("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/ana
                             sep=",",
                             stringsAsFactors = F)
 
-# LDM <- read_excel("LDM.xlsx", 
-#                                sheet = "LDM", 
-#                                col_names = TRUE)
-# BAULahan <- read_excel("BAU_Lahan.xlsx", 
-#                                sheet = "BAU_Lahan", 
-#                                col_names = TRUE)
+# LDC menghubungkan 66 sektor dengan jenis tutupan lahan (land cover)
+ldc <- read_excel("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/analisis data/CIFOR-ICRAF indonesia/Solusi/Jawa Tengah/0_Regional Ekonomi/R - Regional Ekonomi Jateng/Data Input/LDM.xlsx",
+                     sheet = "LDM", col_names = TRUE)
+
+# Baca Data Luas Lahan per 5 Tahun (BAU_Lahan.xlsx)
+bau_lahan <- read_excel("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/analisis data/CIFOR-ICRAF indonesia/Solusi/Jawa Tengah/0_Regional Ekonomi/R - Regional Ekonomi Jateng/Data Input/BAU_Lahan.xlsx",
+                        sheet = "BAU_Lahan", col_names = TRUE)
+
 # LASLahan <- read_excel("LAS_Lahan.xlsx", 
 #                                sheet = "LAS_Lahan", 
 #                                col_names = TRUE)
@@ -401,6 +405,11 @@ p_output <- ggplot(top15_import, aes(x = reorder(nama_Sektor, Output_Multiplier)
     axis.text.y = element_text(size = 8.5)
   )
 
+p_income
+p_labour
+p_output
+p_import
+
 # ------------------------------------------------------------------------------
 # 3. GABUNGKAN DAN TAMPILKAN GRAFIK
 # ------------------------------------------------------------------------------
@@ -416,14 +425,124 @@ gabungan_plot <- p_income / p_labour / p_import / p_output +
     )
   )
 
-# Tampilkan di RStudio Plots Pane
-  print(gabungan_plot)
 
 ```
 
 ##Simulation BAU
 
 ```{r}
+
+#siapkan dulu FD nya utk US 
+# 1. Menyiapkan Matriks Penampung (2025 - 2045)
+tahun_proyeksi <- 2025:2045
+n_sektor <- jml_sektor # 66 sektor
+
+# Matriks penyimpanan berukuran 66 sektor x 21 tahun
+mat_FD_us   <- matrix(0, nrow = n_sektor, ncol = length(tahun_proyeksi), dimnames = list(kolom_Sektor, tahun_proyeksi))
+
+# Ambil kolom tag unconstrained (bernilai 1 untuk unconstrained, 0 untuk constrained)
+# Catatan: Sesuaikan nama kolom jika R mengubah spasi menjadi titik saat read.csv
+tag_uc <- as.numeric(DeskripsiSektor$Unconstrained)
+tag_uc[is.na(tag_uc)] <- 0
+
+# 2. Mengisi Data Tahun Dasar (2025)
+mat_FD_us[, "2025"]   <- as.numeric(fd) * tag_uc
+
+
+# 3. Looping Proyeksi Berantai (2026 - 2045)
+# Mengambil rate_uc dari deskripsi sektor
+rate_uc_raw <- as.numeric(DeskripsiSektor$RateUnconstrained)
+rate_uc_raw[is.na(rate_uc_raw)] <- 0
+rate_uc <- rate_uc_raw * tag_uc  # Sektor constrained otomatis menjadi 0
+
+
+for (th in 2026:2045) {
+  th_str  <- as.character(th)
+  th_prev <- as.character(th - 1)
+  
+  # a. FD tahun (t) merujuk FD tahun sebelumnya (t-1)
+  mat_FD_us[, th_str] <- mat_FD_us[, th_prev] * (1 + rate_uc) #kroscek excel sesuai nilainya
+}
+
+
+#siapkan dulu FD nya utk CS
+# Ambil kolom tag unconstrained (bernilai 1 untuk unconstrained, 0 untuk constrained)
+tag_c <- as.numeric(DeskripsiSektor$Constrained)
+tag_c[is.na(tag_c)] <- 0
+
+# A. Baca Land Distribution Coefficient (LDC) / Land Distribution Matrix (LDM)
+# LDC menghubungkan 66 sektor dengan jenis tutupan lahan (land cover)
+ldc <- ldc
+
+# Ekstraksi matriks numerik LDC (mengabaikan kolom ID/Nama Sektor jika ada di kolom 1-2)
+# Sesuaikan indeks kolom jika struktur file Excel Anda berbeda
+ldc_matrix <- data.matrix(ldc[, 3:ncol(ldc)]) 
+
+# B. Baca Data Luas Lahan per 5 Tahun (BAU_Lahan.xlsx)
+bau_lahan <- bau_lahan
+
+tahun_proyeksi <- 2025:2045
+tahun_str <- as.character(tahun_proyeksi)
+
+# ==============================================================================
+# MENGHITUNG LAND DISTRIBUTION MATRIX (LDM) DAN LUAS LAHAN SEKTOR (A_sektor)
+#    Langsung Membaca Kolom Tahun di BAU_lahan (Tanpa CAGR)
+# ==============================================================================
+mat_A_sektor <- matrix(0, nrow = jml_sektor, ncol = length(tahun_proyeksi),
+                       dimnames = list(kolom_Sektor, tahun_str))
+
+for (th in tahun_str) {
+  # Ambil luas land cover tahun ke-th langsung dari kolom dataframe BAU_lahan
+  area_lc_t <- as.numeric(bau_lahan[[th]])
+  
+  # LDM_t = LDC %*% diag(Area_LC_t)
+  ldm_t <- ldc_matrix %*% diag(area_lc_t)
+  
+  # Total luas lahan per sektor (hektar) = Penjumlahan per baris LDM
+  mat_A_sektor[, th] <- rowSums(ldm_t)
+}
+
+# ==============================================================================
+# MENGHITUNG LRC & LPC (TAHUN DASAR 2025)
+# ==============================================================================
+fd_2025_cs <- as.numeric(fd) * tag_c
+area_2025  <- mat_A_sektor[, "2025"]
+
+# Land Requirement Coefficient (LRC) = Area / FD (ha/Rp)
+lrc <- ifelse(fd_2025_cs > 0, area_2025 / fd_2025_cs, 0)
+
+# Land Productivity Coefficient (LPC) = FD / Area (Rp/ha)
+lpc <- ifelse(area_2025 > 0, fd_2025_cs / area_2025, 0)
+
+
+# ==============================================================================
+# SIMULASI FD, MATRIX X, DAN PDRB CONSTRAINED SECTOR (2025 - 2045)
+# ==============================================================================
+mat_FD_cs   <- matrix(0, nrow = jml_sektor, ncol = length(tahun_proyeksi), dimnames = list(kolom_Sektor, tahun_str))
+
+for (th in tahun_str) {
+  # a. FD_cs(i) = LPC * Area_sektor(i) * tag_c
+  mat_FD_cs[, th] <- (lpc * mat_A_sektor[, th]) * tag_c
+}
+
+#gabungkan FD US dan CS 
+mat_FD_total   <- mat_FD_us + mat_FD_cs 
+
+# ==============================================================================
+# 3. MENGHITUNG MATRIX X TOTAL DAN PDRB TOTAL (2025 - 2045)
+# ==============================================================================
+# Inisialisasi matriks penampung Matrix X dan PDRB Total
+mat_X_total    <- matrix(0, nrow = jml_sektor, ncol = length(tahun_proyeksi), dimnames = list(kolom_Sektor, tahun_str))
+mat_PDRB_total <- matrix(0, nrow = jml_sektor, ncol = length(tahun_proyeksi), dimnames = list(kolom_Sektor, tahun_str))
+
+for (th in tahun_str) {
+  # a. Matrix X Total(t) = Leontief Inverse (2025) %*% FD Total(t)
+  mat_X_total[, th]  <- as.numeric(Leontief_Inverse %*% mat_FD_total[, th])
+  
+  # b. PDRB Total(t) = Matrix X Total(t) * ntbProp
+  mat_PDRB_total[, th] <- mat_X_total[, th] * ntbProp
+}
+
 
 ```
 
@@ -437,8 +556,8 @@ gabungan_plot <- p_income / p_labour / p_import / p_output +
 
 ```{r}
 
-```
 
+```
 
 ##Simulation LAS-1+2+3
 
