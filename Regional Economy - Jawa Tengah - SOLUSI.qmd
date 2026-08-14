@@ -65,11 +65,11 @@ baris_pjkProduk <- 68
 
 ```{r}
 # pembacaan matrix A
-matrixa <- io %>%
+matrixA <- io %>%
   slice(1:jml_sektor) %>%       # Mengambil baris 1 hingga 66
   select(all_of(kolom_Sektor))   # Mengambil rentang kolom dari x1 sampai x66
 
-Z_prov <- data.matrix(matrixa)
+Z_prov <- data.matrix(matrixA)
 
 # Total Output Sektor di Provinsi (X_prov)
 X_prov <- as.numeric(io[baris_totInput,kolom_Sektor])
@@ -81,10 +81,10 @@ A_prov[is.nan(A_prov)] <- 0 #jika Nan diganti 0
 
 # Menciptakan matriks identitas (I) berukuran n x n
 nA_prov <- nrow(A_prov)
-I <- diag(nA_prov)
+matrixI <- diag(nA_prov)
 
 # Menghitung (I - A) dan mencari Invers Leontief: (I - A)^(-1)
-I_minus_A <- I - A_prov
+I_minus_A <- matrixI - A_prov
 Leontief_Inverse <- solve(I_minus_A)
 
 #kolom final demand
@@ -120,12 +120,259 @@ tabel_linkage <- data.frame(
   ITBL = round(itbl, 4),
   ITFL = round(itfl, 4)
 )
-datatable(tabel_linkage)
+
+# ------------------------------------------------------------------------------
+# PENGELOMPOKAN KE DALAM 4 KUADRAN SEKTOR EKONOMI
+# ------------------------------------------------------------------------------
+# masih menerapkan nilai 1, belum tau landasan pemilihan benchmarknya
+
+tabel_kuadran <- tabel_linkage %>%
+  mutate(
+    Kuadran = case_when(
+      ITBL > 1 & ITFL > 1  ~ "K1 (BL Tinggi, FL Tinggi)",
+      ITBL > 1 & ITFL <= 1 ~ "K2 (BL Tinggi, FL Rendah)",
+      ITBL <= 1 & ITFL > 1 ~ "K3 (BL Rendah, FL Tinggi)",
+      TRUE               ~ "K4 (BL Rendah, FL Rendah)"
+    ),
+    Kategori = case_when(
+      ITBL > 1 & ITFL > 1  ~ "Sektor Kunci (Key Sector)",
+      ITBL > 1 & ITFL <= 1 ~ "Sektor Pendorong Hulu (Backward-Oriented)",
+      ITBL <= 1 & ITFL > 1 ~ "Sektor Pendukung Hilir (Forward-Oriented)",
+      TRUE               ~ "Sektor Lemah / Terisolasi (Weak Sector)"
+    )
+  )
+
+# Gabung informasi tabel kuadran dengan tabel input deskrpisi sektor
+tabel_kuadran <- tabel_kuadran %>%
+  left_join(DeskripsiSektor, by = c("nama_Sektor" = "NamaSektor")) # Sesuaikan nama kolom kunci
+
+# membuat format dttable
+df_tabel_kuadran <- datatable(tabel_kuadran)
+
+
+p_linkage <- ggplot(tabel_kuadran, aes(x = ITBL, y = ITFL, label = id_Sektor)) +
+  geom_point(aes(color = Kuadran), size = 3) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "red") +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "red") +
+  geom_text(vjust = -0.7, size = 2.5, check_overlap = TRUE) +
+  labs(
+    title = "Diagram Kuadran Backward & Forward Linkage Sektor Ekonomi",
+    subtitle = "Garis Merah Putus-putus Menunjukkan Batas Indeks = 1.00",
+    x = "Indeks Total Backward Linkage (ITBL) / Indeks Daya Penyebaran (IDP)",
+    y = "Indeks Total Forward Linkage (ITFL) / Indeks Derajat Kepekaan (IDK)"
+  ) +
+  theme_minimal()
+
+p_linkage
 ```
 
 ##Multiplier Analysis
 
 ```{r}
+# ==============================================================================
+# MENGHITUNG MULTIPLIERS (OUTPUT, INCOME, LABOUR, IMPORT)
+# TINGKAT SEKTORAL DAN RATA-RATA KSM (SEKTOR MAKRO)
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# PERSIAPAN DATA KOEFISIEN INPUT PRIMER
+# ------------------------------------------------------------------------------
+# Catatan: Sesuaikan indeks baris pada file IO Anda jika berbeda.
+baris_upah  <- 70  # Baris Kompensasi Tenaga Kerja / Gaji & Upah
+baris_impor <- 69  # Baris Impor / Input Luar Daerah
+
+
+# A. Koefisien Pendapatan Langsung (h)
+upah_gaji <- as.numeric(io[baris_upah, kolom_Sektor])
+upah_gaji[is.na(upah_gaji)] <- 0
+h <- upah_gaji / X_prov
+h[is.nan(h) | is.infinite(h)] <- 0
+h_diag <- diag(h)
+
+# B. Koefisien Tenaga Kerja Langsung (w)
+tk_prov <- DeskripsiSektor[, "TenagaKerja"]
+tk_prov[is.na(tk_prov)] <- 0
+w <- tk_prov / X_prov
+w[is.na(w)] <- 0
+w_diag <- diag(unlist(w))
+w <- diag(w_diag)
+
+# C. Koefisien Impor Langsung (m)
+impor <- as.numeric(io[baris_impor, kolom_Sektor])
+impor[is.na(impor)] <- 0
+im <- impor / X_prov
+im[is.nan(im) | is.infinite(im)] <- 0
+im_diag <- diag(im)
+
+
+# ------------------------------------------------------------------------------
+# PERHITUNGAN MULTIPLIER & EFFECT LEVEL 66 SEKTOR (SEKTORAL)
+# ------------------------------------------------------------------------------
+
+# 1) Output Multiplier (Pengganda Output)
+output_mult <- colSums(Leontief_Inverse) # sama dengan TBL
+
+# 2) Income Multiplier & Effect (Pendapatan)
+income_effect <- h_diag %*% Leontief_Inverse
+# income_mult <- colSums(income_effect) #sama dengan income multiplier di excel 
+
+# 3) Labour Multiplier & Effect (Tenaga Kerja)
+labour_effect <- w_diag %*% Leontief_Inverse
+# labour_mult   <- colSums(labour_effect)
+
+# 4) Import Multiplier & Effect (Kebocoran Impor)
+import_effect <- im_diag %*% Leontief_Inverse
+# import_mult   <- colSums(import_effect)
+
+# ------------------------------------------------------------------------------
+# PERHITUNGAN DAMPAK TOTAL (EFFECTS) & MULTIPLIER TIPE I
+# ------------------------------------------------------------------------------
+
+# A. Dampak Total (Total Effects per 1 unit Permintaan Akhir)
+tot_income_effect <- as.vector(colSums(h_diag %*% Leontief_Inverse))   # Total Income Effect (Rp/Rp)
+tot_labour_effect <- as.vector(colSums(w_diag %*% Leontief_Inverse))   # Total Labour Effect (Orang/Rp)
+tot_import_effect <- as.vector(colSums(im_diag %*% Leontief_Inverse))  # Total Import Effect (Kebocoran)
+
+# B. Multiplier Tipe I (Rasio Kelipatan terhadap Koefisien Langsung)
+type1_income_mult <- ifelse(h > 0, tot_income_effect / h, 0)
+type1_labour_mult <- ifelse(w > 0, tot_labour_effect / w, 0)
+type1_import_mult <- ifelse(im > 0, tot_import_effect / im, 0)
+
+# ------------------------------------------------------------------------------
+# PENGGABUNGAN KE TABEL KUADRAN SEKTORAL (66 SEKTOR MIKRO)
+# ------------------------------------------------------------------------------
+# Ekstraksi nama KSM dari Kolom D (Kolom ke-5) untuk 66 sektor
+ksm_sektor <- io[1:jml_sektor, 5] #kategori berdasarkan 17 sektor besar, jika pakai 2 digit sektor pakai kolom no 4
+
+# Menambahkan kolom KSM ke tabel_kuadran yang sudah Anda buat
+tabel_kuadran_sektoral <- tabel_kuadran %>%
+  mutate(KSM = ksm_sektor) %>%
+  select(nama_Sektor, KSM, TBL, TFL, ITBL, ITFL, Kuadran, Kategori)
+
+# Menggabungkan Hasil Multiplier Sektoral ke Tabel Kuadran Sektoral
+tabel_multiplier_sektoral <- tabel_kuadran_sektoral %>%
+  mutate(
+    # Koefisien Langsung (Input Primer per Unit Output)
+    Koef_Upah_h          = round(h, 6),
+    Koef_TK_w            = round(w, 6),
+    Koef_Impor_m         = round(im, 6),
+    
+    # Pengganda Output
+    Output_Multiplier    = round(output_mult, 4),
+    
+    # Dampak Total (Total Effects)
+    Income_Effect        = round(tot_income_effect, 4),
+    Labour_Effect        = round(tot_labour_effect, 4),
+    Import_Effect        = round(tot_import_effect, 4),
+    
+    # Multiplier Tipe I (Kelipatan)
+    Income_Multiplier_T1 = round(type1_income_mult, 4),
+    Labour_Multiplier_T1 = round(type1_labour_mult, 4),
+    Import_Multiplier_T1 = round(type1_import_mult, 4)
+  )
+
+# membuat format dttable
+df_tabel_multiplier_sektoral <- datatable(tabel_multiplier_sektoral)
+
+# A. Top 15 Income Effect
+top15_income <- tabel_multiplier_sektoral %>%
+  arrange(desc(Income_Effect)) %>%
+  slice(1:15)
+
+# B. Top 15 Labour Effect
+top15_labour <- tabel_multiplier_sektoral %>%
+  arrange(desc(Labour_Effect)) %>%
+  slice(1:15)
+
+# C. Top 15 Import Effect
+top15_import <- tabel_multiplier_sektoral %>%
+  arrange(desc(Import_Effect)) %>%
+  slice(1:15)
+
+# D. Top 15 Output Effect
+top15_output <- tabel_multiplier_sektoral %>%
+  arrange(desc(Output_Multiplier)) %>%
+  slice(1:15)
+
+# ------------------------------------------------------------------------------
+# 2. PEMBUATAN PLOT MASING-MASING INDIKATOR
+# ------------------------------------------------------------------------------
+
+# Plot 1: Top 15 Income Effect
+p_income <- ggplot(top15_income, aes(x = reorder(nama_Sektor, Income_Effect), y = Income_Effect)) +
+  geom_col(fill = "#2e7d32", width = 0.75) +
+  geom_text(aes(label = round(Income_Effect, 4)), hjust = -0.15, size = 3) +
+  coord_flip() +
+  labs(
+    title = "Top 15 Sektor - Income Effect",
+    subtitle = "Dampak Pendapatan Rumah Tangga per Unit Permintaan Akhir",
+    x = NULL,
+    y = "Income Effect (Rp/Rp)"
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.2))) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 12, color = "#1b5e20"),
+    axis.text.y = element_text(size = 8.5)
+  )
+
+# Plot 2: Top 15 Labour Effect
+p_labour <- ggplot(top15_labour, aes(x = reorder(nama_Sektor, Labour_Effect), y = Labour_Effect)) +
+  geom_col(fill = "#1565c0", width = 0.75) +
+  geom_text(aes(label = round(Labour_Effect, 4)), hjust = -0.15, size = 3) +
+  coord_flip() +
+  labs(
+    title = "Top 15 Sektor - Labour Effect",
+    subtitle = "Penyerapan Tenaga Kerja per Unit Permintaan Akhir",
+    x = NULL,
+    y = "Labour Effect (Orang/Juta Rp)"
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.2))) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 12, color = "#0d47a1"),
+    axis.text.y = element_text(size = 8.5)
+  )
+
+# Plot 3: Top 15 Import Effect
+p_import <- ggplot(top15_import, aes(x = reorder(nama_Sektor, Import_Effect), y = Import_Effect)) +
+  geom_col(fill = "#c62828", width = 0.75) +
+  geom_text(aes(label = round(Import_Effect, 4)), hjust = -0.15, size = 3) +
+  coord_flip() +
+  labs(
+    title = "Top 15 Sektor - Import Effect (Kebocoran Ekonomi)",
+    subtitle = "Dampak Kebocoran Impor Input per Unit Permintaan Akhir",
+    x = NULL,
+    y = "Import Effect (Rp/Rp)"
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.2))) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 12, color = "#b71c1c"),
+    axis.text.y = element_text(size = 8.5)
+  )
+
+# Plot 4: Top 15 Output Multiplier
+p_output <- ggplot(top15_import, aes(x = reorder(nama_Sektor, Output_Multiplier), y = Output_Multiplier)) +
+  geom_col(fill = "orange", width = 0.75) +
+  geom_text(aes(label = round(Import_Effect, 4)), hjust = -0.15, size = 3) +
+  coord_flip() +
+  labs(
+    title = "Top 15 Sektor - Output Multiplier",
+    x = NULL,
+    y = "Output Effect (Rp/Rp)"
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.2))) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 12, color = "orange"),
+    axis.text.y = element_text(size = 8.5)
+  )
+
+p_output
+p_import
+p_labour
+p_income
 
 ```
 
