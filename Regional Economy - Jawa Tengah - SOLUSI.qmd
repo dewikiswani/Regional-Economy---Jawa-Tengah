@@ -6,9 +6,10 @@ editor: visual
 ---
 
 ## Regional Economy Simulation
+
 Untuk mengestimasi dampak ekonomi dari skenario perubahan tutupan lahan spasial terhadap PDRB regional, penelitian ini menerapkan pendekatan Land-Extended Input-Output (LEIO) yang dikombinasikan dengan Mixed Endogenous-Exogenous Input-Output Model (Miller & Blair, 2009). Kerangka kerja hubungan antara koefisien penggunaan lahan fisik dan transaksi moneter mengacu pada metode Land Requirement Coefficient yang dikembangkan oleh Hubacek & Sun (2001) dan Hubacek & Vazquez (2002).
 
- Mengingat output sektor berbasis lahan dibatasi secara fisik oleh kapasitas tutupan lahannya, perubahan output sektor tersebut (ditransformasikan dari perkalian perubahan luas lahan dengan produktivitas lahan . Untuk menghindari estimasi ganda (overestimation) pada matriks Kebalikan Leontief, status output sektor lahan dijajarkan secara eksogen mengikuti formulasi Mixed I-O (Papadas & Dahl, 1999; Miller & Blair, 2009), sedangkan estimasi PDRB sektor non-lahan dihitung secara terintegrasi.
+Mengingat output sektor berbasis lahan dibatasi secara fisik oleh kapasitas tutupan lahannya, perubahan output sektor tersebut (ditransformasikan dari perkalian perubahan luas lahan dengan produktivitas lahan . Untuk menghindari estimasi ganda (overestimation) pada matriks Kebalikan Leontief, status output sektor lahan dijajarkan secara eksogen mengikuti formulasi Mixed I-O (Papadas & Dahl, 1999; Miller & Blair, 2009), sedangkan estimasi PDRB sektor non-lahan dihitung secara terintegrasi.
 
 ## Data Input and Reading
 
@@ -58,6 +59,11 @@ baris_totInput <- 74
 baris_totInputPrimer <- 73
 baris_pjkProduk <- 68
 
+```
+
+##Pre-Processing
+
+```{r}
 # pembacaan matrix A
 matrixa <- io %>%
   slice(1:jml_sektor) %>%       # Mengambil baris 1 hingga 66
@@ -83,12 +89,6 @@ Leontief_Inverse <- solve(I_minus_A)
 
 #kolom final demand
 fd <- io[1:jml_sektor,kolom_FD]
-```
-
-##Pre-Processing
-
-```{r}
-
 ```
 
 ## Linkages analysis
@@ -147,7 +147,6 @@ datatable(tabel_linkage)
 
 ```
 
-
 ##Simulation LAS-1+2+3
 
 ```{r}
@@ -159,4 +158,3 @@ datatable(tabel_linkage)
 ```{r}
 
 ```
-
