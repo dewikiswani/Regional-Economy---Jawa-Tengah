@@ -19,6 +19,7 @@ library(tidyr)
 library(ggplot2)
 library(readxl)
 library(DT)
+library(patchwork)
 
 # Data Ekonomi Provinsi
 # Baca Matriks Transaksi Inter-Industri Provinsi (Z_prov) 
@@ -33,7 +34,7 @@ DeskripsiSektor <- read_excel("DeskripsiSektor.xlsx",
                                 col_names = TRUE)
 LDM <- read_excel("LDM.xlsx", 
                                sheet = "LDM", 
-                               col_names = TRUE)
+                               col_names = FALSE)
 BAULahan <- read_excel("BAU_Lahan.xlsx", 
                                sheet = "BAU_Lahan", 
                                col_names = TRUE)
@@ -89,6 +90,51 @@ Leontief_Inverse <- solve(I_minus_A)
 
 #kolom final demand
 fd <- io[1:jml_sektor,kolom_FD]
+
+
+#Perkalian Matriks: (I - A)^-1 %*% FD
+# Menggunakan operator %*% untuk perkalian aljabar linier (bukan * biasa)
+matrix_X <- Leontief_Inverse %*% fd
+
+#validasi total_output_baru (matrix X) = total_output io
+total_output_io <- io[1:jml_sektor,kolom_TOutput]
+validasi_output <- matrix_X/total_output_io*100
+
+# proposi fd terhadap output
+fdProp <- fd/total_output_io
+fdProp[is.nan(fdProp) | is.infinite(fdProp)] <- 0
+
+#validasi Proporsi NTB/total input * (I - A)^-1 %*% FD = total input primer di IO
+totInputPrimer <- as.numeric(io[baris_totInputPrimer,kolom_Sektor])
+totInput <- as.numeric(io[baris_totInput,kolom_Sektor])
+ntbProp <- totInputPrimer/totInput
+ntbProp[is.nan(ntbProp) | is.infinite(ntbProp)] <- 0
+matrix_X <- as.numeric(matrix_X)
+kali_NTB <- as.numeric(matrix_X * ntbProp)
+validasi_NtbProp <- kali_NTB/totInputPrimer*100
+
+#validasi Proporsi NTB/total input * (I - A)^-1 %*% FD = pdrb di IO (NTB + pajak atas produk)
+totInputPrimer <- as.numeric(io[baris_totInputPrimer,kolom_Sektor])
+pdrb_IO <- totInputPrimer 
+
+#validasi (I - A)^-1 %*% FD %*% Proporsi NTB/total input *= pdrb di IO (NTB + pajak atas produk)
+validasi_PDRB_IO <- (kali_NTB/pdrb_IO*100)
+validasi_PDRB_IO[is.nan(validasi_PDRB_IO) | is.infinite(validasi_PDRB_IO)] <- 0
+mean(validasi_PDRB_IO)
+
+# menghitung land requirement coeff (LRC) dan land productivity coeff (LPC)
+Lahan2025 <- BAULahan$"2025"
+Lahan2025_diag <- diag(Lahan2025)
+LDM_matrix <- as.matrix(LDM[, -1])
+storage.mode(LDM_matrix) <- "double"
+LR_matrix   <- LDM_matrix %*% Lahan2025_diag
+LR <- rowSums(LR_matrix, na.rm = TRUE)
+LRC <- LR/fd
+LPC <- 1/LRC
+
+# marker sektor Constrained dan Unconstrained
+Unconstrained <- as.matrix(DeskripsiSektor[, 6])
+Constrained <- as.matrix(DeskripsiSektor[, 5])
 ```
 
 ## Linkages analysis
@@ -374,17 +420,176 @@ p_import
 p_labour
 p_income
 
+# ------------------------------------------------------------------------------
+# 3. GABUNGKAN DAN TAMPILKAN GRAFIK
+# ------------------------------------------------------------------------------
+
+# Penggabungan 3 Plot dalam 1 Tampilan Kolom (Atas-Tengah-Bawah)
+gabungan_plot <- p_income / p_labour / p_import / p_output +
+  plot_annotation(
+    title = "ANALISIS SEKTOR STRATEGIS REGIONAL (BUKECAP)",
+    subtitle = "Perbandingan 15 Sektor Tertinggi Berdasarkan Indikator Dampak Pengganda Ekonomi",
+    theme = theme(
+      plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
+      plot.subtitle = element_text(size = 11, hjust = 0.5)
+    )
+  )
+
+# Tampilkan di RStudio Plots Pane
+  print(gabungan_plot)
+
 ```
 
 ##Simulation BAU
 
 ```{r}
+## Ekstrak vector rerata pertumbuhan sektor unconstrained
+rate <- DeskripsiSektor$RateUnconstrained
+
+## Buat matrix untuk menyimpan hasil
+all_steps <- matrix(NA, nrow = 66, ncol = 20)
+current_val <- fd
+
+## Loop untuk menghitung FD scenario
+for (i in 1:20) {
+  current_val <- ((current_val * rate) + current_val) * Unconstrained
+  all_steps[, i] <- current_val  # Store result in column 'i'
+}
+
+## Memberikan nama kolom pada hasil perhitungan FD scenario
+colnames(all_steps) <- paste0("FD", 2026:2045)
+
+# add FD2025 into the new matrix
+fd_BAU_uncon <- all_steps
+fd_BAU2025 <- fd * Unconstrained
+fd_BAU_uncon <- cbind(fd_BAU2025, fd_BAU_uncon)
+colnames(fd_BAU_uncon)[1] <- "FD2025"
+
+# Extract data luasan tutupan lahan dari hasil simulasi BAU
+BAUArea <- as.matrix(BAULahan[, (ncol(BAULahan) - 20):ncol(BAULahan)])
+storage.mode(BAUArea) <- "double"
+
+# Persiapkan data LDM dan LPC
+LDM_matrix    <- as.matrix(LDM_matrix)
+LPC           <- as.numeric(LPC)
+Unconstrained <- as.numeric(Unconstrained)
+num_rows <- nrow(LDM_matrix)
+num_cols <- ncol(BAUArea)
+
+# Loop untuk menghitung total area sektor dan Final Demand BAU
+final_results <- matrix(NA, nrow = nrow(LDM_matrix), ncol = ncol(BAUArea))
+
+for (i in 1:ncol(BAUArea)) {
+  r_sums <- as.vector(LDM_matrix %*% BAUArea[, i])
+  step_res <- r_sums * LPC * Constrained
+  final_results[, i] <- r_sums * LPC * Constrained
+  # Replace NaN before saving
+  step_res[is.nan(step_res)] <- 0
+  final_results[, i] <- step_res
+}
+
+# buat tabel FD keseluruhan BAU
+colnames(final_results) <- colnames(BAUArea)
+fd_BAU_con <- final_results
+fd_BAU <- fd_BAU_con + fd_BAU_uncon
+
+# Loop untuk menghitung total PDRB hasil simulasi BAU
+final_results <- matrix(NA, nrow = nrow(fd_BAU), ncol = ncol(fd_BAU))
+
+for (i in 1:ncol(fd_BAU)) {
+  r_sums <- as.vector(Leontief_Inverse %*% fd_BAU[, i])
+  step_res <- r_sums 
+  final_results[, i] <- r_sums * ntbProp
+  # Replace NaN before saving
+  step_res[is.nan(step_res)] <- 0
+  final_results[, i] <- step_res
+}
+
+# buat tabel FD keseluruhan PDRB BAU
+colnames(final_results) <- colnames(BAUArea)
+pdrb_BAU <- final_results
+
+pdrb_BAU_total <- colSums(pdrb_BAU)
+plot(pdrb_BAU_total)
 
 ```
 
 ##Simulation LAS-1
 
 ```{r}
+# Extract data luasan tutupan lahan dari hasil simulasi BAU
+LASArea <- as.matrix(LASLahan[, (ncol(LASLahan) - 20):ncol(LASLahan)])
+storage.mode(LASArea) <- "double"
+
+# Loop untuk menghitung total area sektor dan Final Demand LAS
+final_results <- matrix(NA, nrow = nrow(LDM_matrix), ncol = ncol(LASArea))
+
+for (i in 1:ncol(LASArea)) {
+  r_sums <- as.vector(LDM_matrix %*% LASArea[, i])
+  step_res <- r_sums * LPC * Constrained
+  final_results[, i] <- r_sums * LPC * Constrained
+  # Replace NaN before saving
+  step_res[is.nan(step_res)] <- 0
+  final_results[, i] <- step_res
+}
+
+# buat tabel FD keseluruhan LAS
+colnames(final_results) <- colnames(LASArea)
+fd_LAS_con <- final_results
+fd_LAS <- fd_LAS_con + fd_BAU_uncon
+
+# Loop untuk menghitung total PDRB hasil simulasi LAS
+final_results <- matrix(NA, nrow = nrow(fd_LAS), ncol = ncol(fd_LAS))
+
+for (i in 1:ncol(fd_LAS)) {
+  r_sums <- as.vector(Leontief_Inverse %*% fd_LAS[, i])
+  step_res <- r_sums 
+  final_results[, i] <- r_sums * ntbProp
+  # Replace NaN before saving
+  step_res[is.nan(step_res)] <- 0
+  final_results[, i] <- step_res
+}
+
+# buat tabel FD keseluruhan PDRB BAU
+colnames(final_results) <- colnames(LASArea)
+pdrb_LAS <- final_results
+
+pdrb_LAS_total <- colSums(pdrb_LAS)
+plot(pdrb_LAS_total)
+
+# Plot membandingkan BAU dan LAS1
+years <- 2025:2045
+
+plot_df <- data.frame(
+  Year = years,
+  pdrb_LAS = pdrb_LAS_total,
+  pdrb_BAU = pdrb_BAU_total
+)
+
+ggplot(plot_df, aes(x = Year)) +
+  geom_line(aes(y = pdrb_BAU, color = "BAU Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_BAU, color = "BAU Scenario"), size = 2) +
+  geom_line(aes(y = pdrb_LAS, color = "LAS Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS, color = "LAS Scenario"), size = 2) +
+  scale_color_manual(
+    name = "Scenario",
+    values = c("BAU Scenario" = "#D95F02", "LAS Scenario" = "#1B9E77")
+  ) +
+  scale_x_continuous(breaks = seq(2025, 2045, by = 5)) +
+  labs(
+    title = "PDRB Projection Comparison: BAU vs. LAS (2025–2045)",
+    x = "Year",
+    y = "Total PDRB"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  )
+
+
+
+
 
 ```
 
