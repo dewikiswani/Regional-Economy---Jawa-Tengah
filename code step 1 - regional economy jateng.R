@@ -3,6 +3,7 @@ library(tidyr)
 library(ggplot2)
 library(readxl)
 library(patchwork)
+library(DT)
 
 # Data Ekonomi Provinsi
 # Baca Matriks Transaksi Inter-Industri Provinsi (Z_prov) 
@@ -10,11 +11,12 @@ io <- read.csv("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/analisis data/CI
                header=T,
                sep=",",
                stringsAsFactors = F)
-# baca tabel TK per sektor 
-tkSektor_prov <-  read.csv("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/analisis data/CIFOR-ICRAF indonesia/Solusi/Jawa Tengah/0_Regional Ekonomi/R - Regional Ekonomi Jateng/Estimasi Tenaga Kerja 2025.csv", 
-                           header=T,
-                           sep=",",
-                           stringsAsFactors = F) 
+# baca data klasifikasi sektor
+DeskripsiSektor <- read.csv("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/analisis data/CIFOR-ICRAF indonesia/Solusi/Jawa Tengah/0_Regional Ekonomi/R - Regional Ekonomi Jateng/deskripsi sektor.csv", 
+                            header=T,
+                            sep=",",
+                            stringsAsFactors = F)
+
 # Baca data PDRB ADHK dari Sheet 'ADHK'
 pdrb_adhk_banyumas <- read_excel("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/analisis data/CIFOR-ICRAF indonesia/Solusi/Jawa Tengah/0_Regional Ekonomi/R - Regional Ekonomi Jateng/PDRB ADHB & ADHB Menurut Lapangan Usaha 2010-2025 - Banyumas_clean.xlsx", 
                                 sheet = "ADHK", 
@@ -204,7 +206,15 @@ print(sektor_kunci4)
 # VISUALISASI DIAGRAM KUADRAN (PLOT SCATTER)
 # ------------------------------------------------------------------------------
 
-ggplot(tabel_kuadran, aes(x = ITBL, y = ITFL, label = nama_Sektor)) +
+# Gabung informasi tabel kuadran dengan tabel input deskrpisi sektor
+tabel_kuadran <- tabel_kuadran %>%
+  left_join(DeskripsiSektor, by = c("nama_Sektor" = "NamaSektor")) # Sesuaikan nama kolom kunci
+
+# membuat format dttable
+df_tabel_kuadran <- datatable(tabel_kuadran)
+
+
+p_linkage <- ggplot(tabel_kuadran, aes(x = ITBL, y = ITFL, label = id_Sektor)) +
   geom_point(aes(color = Kuadran), size = 3) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "red") +
   geom_vline(xintercept = 1, linetype = "dashed", color = "red") +
@@ -217,6 +227,7 @@ ggplot(tabel_kuadran, aes(x = ITBL, y = ITFL, label = nama_Sektor)) +
   ) +
   theme_minimal()
 
+p_linkage
 
 # ==============================================================================
 # ANALISIS KSM (KLASIFIKASI SEKTOR MAKRO)
@@ -393,7 +404,7 @@ h[is.nan(h) | is.infinite(h)] <- 0
 h_diag <- diag(h)
 
 # B. Koefisien Tenaga Kerja Langsung (w)
-tk_prov <- as.numeric(tkSektor_prov[, "BUKECAP"])
+tk_prov <- as.numeric(DeskripsiSektor[, "TenagaKerja"])
 tk_prov[is.na(tk_prov)] <- 0
 w <- tk_prov / X_prov
 w[is.nan(w) | is.infinite(w)] <- 0
@@ -468,6 +479,9 @@ tabel_multiplier_sektoral <- tabel_kuadran_sektoral %>%
 print("--- 10 SEKTOR MIKRO PERTAMA DENGAN TABEL MULTIPLIER LENGKAP ---")
 print(head(tabel_multiplier_sektoral, 10))
 
+# membuat format dttable
+df_tabel_multiplier_sektoral <- datatable(tabel_multiplier_sektoral)
+
 # A. Top 15 Income Effect
 top15_income <- tabel_multiplier_sektoral %>%
   arrange(desc(Income_Effect)) %>%
@@ -481,6 +495,12 @@ top15_labour <- tabel_multiplier_sektoral %>%
 # C. Top 15 Import Effect
 top15_import <- tabel_multiplier_sektoral %>%
   arrange(desc(Import_Effect)) %>%
+  slice(1:15)
+
+
+# D. Top 15 Output Effect
+top15_output <- tabel_multiplier_sektoral %>%
+  arrange(desc(Output_Multiplier)) %>%
   slice(1:15)
 
 # ------------------------------------------------------------------------------
@@ -538,6 +558,23 @@ p_import <- ggplot(top15_import, aes(x = reorder(nama_Sektor, Import_Effect), y 
   theme_minimal() +
   theme(
     plot.title = element_text(face = "bold", size = 12, color = "#b71c1c"),
+    axis.text.y = element_text(size = 8.5)
+  )
+
+# Plot 4: Top 15 Output Multiplier
+p_output <- ggplot(top15_import, aes(x = reorder(nama_Sektor, Output_Multiplier), y = Output_Multiplier)) +
+  geom_col(fill = "orange", width = 0.75) +
+  geom_text(aes(label = round(Import_Effect, 4)), hjust = -0.15, size = 3) +
+  coord_flip() +
+  labs(
+    title = "Top 15 Sektor - Output Multiplier",
+    x = NULL,
+    y = "Output Effect (Rp/Rp)"
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.2))) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 12, color = "orange"),
     axis.text.y = element_text(size = 8.5)
   )
 
