@@ -36,15 +36,17 @@ DeskripsiSektor <- read.csv("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/ana
 
 # LDC menghubungkan 66 sektor dengan jenis tutupan lahan (land cover)
 ldc <- read_excel("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/analisis data/CIFOR-ICRAF indonesia/Solusi/Jawa Tengah/0_Regional Ekonomi/R - Regional Ekonomi Jateng/Data Input/LDM.xlsx",
-                     sheet = "LDM", col_names = TRUE)
+                     sheet = "LDM", col_names = FALSE)
 
 # Baca Data Luas Lahan per 5 Tahun (BAU_Lahan.xlsx)
 bau_lahan <- read_excel("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/analisis data/CIFOR-ICRAF indonesia/Solusi/Jawa Tengah/0_Regional Ekonomi/R - Regional Ekonomi Jateng/Data Input/BAU_Lahan.xlsx",
                         sheet = "BAU_Lahan", col_names = TRUE)
 
-# LASLahan <- read_excel("LAS_Lahan.xlsx", 
-#                                sheet = "LAS_Lahan", 
-#                                col_names = TRUE)
+
+LASLahan <- read_excel("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/analisis data/CIFOR-ICRAF indonesia/Solusi/Jawa Tengah/0_Regional Ekonomi/R - Regional Ekonomi Jateng/Data Input/LAS_Lahan.xlsx",
+                               sheet = "LAS_Lahan",
+                               col_names = TRUE)
+
 # SType1 <- read_excel("SType1.xlsx", 
 #                                sheet = "SType1", 
 #                                col_names = TRUE)
@@ -438,7 +440,7 @@ tahun_proyeksi <- 2025:2045
 n_sektor <- jml_sektor # 66 sektor
 
 # Matriks penyimpanan berukuran 66 sektor x 21 tahun
-mat_FD_us   <- matrix(0, nrow = n_sektor, ncol = length(tahun_proyeksi), dimnames = list(kolom_Sektor, tahun_proyeksi))
+fd_BAU_uncon   <- matrix(0, nrow = n_sektor, ncol = length(tahun_proyeksi), dimnames = list(kolom_Sektor, tahun_proyeksi))
 
 # Ambil kolom tag unconstrained (bernilai 1 untuk unconstrained, 0 untuk constrained)
 # Catatan: Sesuaikan nama kolom jika R mengubah spasi menjadi titik saat read.csv
@@ -446,7 +448,7 @@ tag_uc <- as.numeric(DeskripsiSektor$Unconstrained)
 tag_uc[is.na(tag_uc)] <- 0
 
 # 2. Mengisi Data Tahun Dasar (2025)
-mat_FD_us[, "2025"]   <- as.numeric(fd) * tag_uc
+fd_BAU_uncon[, "2025"]   <- as.numeric(fd) * tag_uc
 
 
 # 3. Looping Proyeksi Berantai (2026 - 2045)
@@ -461,7 +463,7 @@ for (th in 2026:2045) {
   th_prev <- as.character(th - 1)
   
   # a. FD tahun (t) merujuk FD tahun sebelumnya (t-1)
-  mat_FD_us[, th_str] <- mat_FD_us[, th_prev] * (1 + rate_uc) #kroscek excel sesuai nilainya
+  fd_BAU_uncon[, th_str] <- fd_BAU_uncon[, th_prev] * (1 + rate_uc) #kroscek excel sesuai nilainya
 }
 
 
@@ -472,11 +474,8 @@ tag_c[is.na(tag_c)] <- 0
 
 # A. Baca Land Distribution Coefficient (LDC) / Land Distribution Matrix (LDM)
 # LDC menghubungkan 66 sektor dengan jenis tutupan lahan (land cover)
-ldc <- ldc
+ldc_matrix <- as.matrix(ldc[, -ncol(ldc)])
 
-# Ekstraksi matriks numerik LDC (mengabaikan kolom ID/Nama Sektor jika ada di kolom 1-2)
-# Sesuaikan indeks kolom jika struktur file Excel Anda berbeda
-ldc_matrix <- data.matrix(ldc[, 3:ncol(ldc)]) 
 
 # B. Baca Data Luas Lahan per 5 Tahun (BAU_Lahan.xlsx)
 bau_lahan <- bau_lahan
@@ -518,15 +517,15 @@ lpc <- ifelse(area_2025 > 0, fd_2025_cs / area_2025, 0)
 # ==============================================================================
 # SIMULASI FD, MATRIX X, DAN PDRB CONSTRAINED SECTOR (2025 - 2045)
 # ==============================================================================
-mat_FD_cs   <- matrix(0, nrow = jml_sektor, ncol = length(tahun_proyeksi), dimnames = list(kolom_Sektor, tahun_str))
+fd_BAU_con   <- matrix(0, nrow = jml_sektor, ncol = length(tahun_proyeksi), dimnames = list(kolom_Sektor, tahun_str))
 
 for (th in tahun_str) {
   # a. FD_cs(i) = LPC * Area_sektor(i) * tag_c
-  mat_FD_cs[, th] <- (lpc * mat_A_sektor[, th]) * tag_c
+  fd_BAU_con[, th] <- (lpc * mat_A_sektor[, th]) * tag_c
 }
 
 #gabungkan FD US dan CS 
-mat_FD_total   <- mat_FD_us + mat_FD_cs 
+fd_BAU   <- fd_BAU_uncon + fd_BAU_con 
 
 # ==============================================================================
 # 3. MENGHITUNG MATRIX X TOTAL DAN PDRB TOTAL (2025 - 2045)
@@ -537,29 +536,45 @@ mat_PDRB_total <- matrix(0, nrow = jml_sektor, ncol = length(tahun_proyeksi), di
 
 for (th in tahun_str) {
   # a. Matrix X Total(t) = Leontief Inverse (2025) %*% FD Total(t)
-  mat_X_total[, th]  <- as.numeric(Leontief_Inverse %*% mat_FD_total[, th])
+  mat_X_total[, th]  <- as.numeric(Leontief_Inverse %*% fd_BAU[, th])
   
   # b. PDRB Total(t) = Matrix X Total(t) * ntbProp
   mat_PDRB_total[, th] <- mat_X_total[, th] * ntbProp
 }
 
+# buat tabel FD keseluruhan PDRB BAU
+pdrb_BAU <- mat_PDRB_total
+
+pdrb_BAU_total <- colSums(pdrb_BAU)
+plot(pdrb_BAU_total)
+
+pdrb_BAU
+fd_BAU
 
 ```
 
-##Simulation LAS-1
+##Simulation LAS-1A
+
+```{r}
+
+
+```
+
+
+##Simulation LAS-1B
 
 ```{r}
 
 ```
 
-##Simulation LAS-1+2
+##Simulation LAS-1B+2
 
 ```{r}
 
 
 ```
 
-##Simulation LAS-1+2+3
+##Simulation LAS-1B+2+3
 
 ```{r}
 
