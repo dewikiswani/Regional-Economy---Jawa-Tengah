@@ -501,8 +501,8 @@ for (i in 1:ncol(fd_BAU)) {
   step_res <- r_sums 
   final_results[, i] <- r_sums * ntbProp
   # Replace NaN before saving
-  step_res[is.nan(step_res)] <- 0
-  final_results[, i] <- step_res
+  final_results[is.nan(final_results)] <- 0
+  #final_results[, i] <- step_res
 }
 
 # buat tabel FD keseluruhan PDRB BAU
@@ -546,38 +546,112 @@ for (i in 1:ncol(fd_LAS)) {
   step_res <- r_sums 
   final_results[, i] <- r_sums * ntbProp
   # Replace NaN before saving
-  step_res[is.nan(step_res)] <- 0
-  final_results[, i] <- step_res
+  final_results[is.nan(final_results)] <- 0
+  #final_results[, i] <- step_res
 }
 
 # buat tabel FD keseluruhan PDRB BAU
 colnames(final_results) <- colnames(LASArea)
-pdrb_LAS <- final_results
+pdrb_LAS1 <- final_results
 
-pdrb_LAS_total <- colSums(pdrb_LAS)
-plot(pdrb_LAS_total)
+pdrb_LAS1_total <- colSums(pdrb_LAS1)
+plot(pdrb_LAS1_total)
 
 # Plot perbandingan BAU dan LAS1
 years <- 2025:2045
 
 plot_df <- data.frame(
   Year = years,
-  pdrb_LAS = pdrb_LAS_total,
+  pdrb_LAS1 = pdrb_LAS1_total,
   pdrb_BAU = pdrb_BAU_total
 )
 
 ggplot(plot_df, aes(x = Year)) +
   geom_line(aes(y = pdrb_BAU, color = "BAU Scenario"), linewidth = 1.1) +
   geom_point(aes(y = pdrb_BAU, color = "BAU Scenario"), size = 2) +
-  geom_line(aes(y = pdrb_LAS, color = "LAS Scenario"), linewidth = 1.1) +
-  geom_point(aes(y = pdrb_LAS, color = "LAS Scenario"), size = 2) +
+  geom_line(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), size = 2) +
   scale_color_manual(
     name = "Scenario",
-    values = c("BAU Scenario" = "#D95F02", "LAS Scenario" = "#1B9E77")
+    values = c("BAU Scenario" = "#D95F02", "LAS1 Scenario" = "#1B9E77")
   ) +
   scale_x_continuous(breaks = seq(2025, 2045, by = 5)) +
   labs(
-    title = "PDRB Projection Comparison: BAU vs. LAS (2025–2045)",
+    title = "PDRB Projection Comparison: BAU vs. LAS1 (2025–2045)",
+    x = "Year",
+    y = "Total PDRB"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  )
+```
+
+##Simulation LAS-1B
+```{r}
+# Loop untuk menghitung total area sektor dan Final Demand LAS dan SType1
+final_results <- matrix(NA, nrow = nrow(LDM_matrix), ncol = ncol(LASArea))
+SType1 <- as.matrix(SType1[, -26])
+storage.mode(SType1) <- "double"
+
+for (i in 1:ncol(LASArea)) {
+  r_sums <- as.vector(SType1 %*% LASArea[, i])
+  step_res <- r_sums * LPC * Constrained
+  final_results[, i] <- r_sums * LPC * Constrained
+  # Replace NaN before saving
+  step_res[is.nan(step_res)] <- 0
+  final_results[, i] <- step_res
+}
+
+# buat tabel FD keseluruhan LAS
+colnames(final_results) <- colnames(LASArea)
+fd_LAS_con <- final_results
+fd_LAS <- fd_LAS_con + fd_BAU_uncon
+
+# Loop untuk menghitung total PDRB hasil simulasi LAS
+final_results <- matrix(NA, nrow = nrow(fd_LAS), ncol = ncol(fd_LAS))
+
+for (i in 1:ncol(fd_LAS)) {
+  r_sums <- as.vector(Leontief_Inverse %*% fd_LAS[, i])
+  step_res <- r_sums 
+  final_results[, i] <- r_sums * ntbProp
+  # Replace NaN before saving
+  final_results[is.nan(final_results)] <- 0
+  #final_results[, i] <- step_res
+}
+
+# buat tabel FD keseluruhan PDRB BAU
+colnames(final_results) <- colnames(LASArea)
+pdrb_LAS1B <- final_results
+
+pdrb_LAS1B_total <- colSums(pdrb_LAS1B)
+plot(pdrb_LAS1B_total)
+
+# Plot perbandingan BAU dan LAS1
+years <- 2025:2045
+
+plot_df <- data.frame(
+  Year = years,
+  pdrb_LAS1 = pdrb_LAS1_total,
+  pdrb_LAS1B = pdrb_LAS1B_total,
+  pdrb_BAU = pdrb_BAU_total
+)
+
+ggplot(plot_df, aes(x = Year)) +
+  geom_line(aes(y = pdrb_BAU, color = "BAU Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_BAU, color = "BAU Scenario"), size = 2) +
+  geom_line(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), size = 2) +
+  geom_line(aes(y = pdrb_LAS1B, color = "LAS1B Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS1B, color = "LAS1B Scenario"), size = 2) +
+  scale_color_manual(
+    name = "Scenario",
+    values = c("BAU Scenario" = "#D95F02", "LAS1 Scenario" = "#1B9E77", "LAS1B Scenario" = "#00aef2")
+  ) +
+  scale_x_continuous(breaks = seq(2025, 2045, by = 5)) +
+  labs(
+    title = "PDRB Projection Comparison: BAU vs. LAS1 (2025–2045)",
     x = "Year",
     y = "Total PDRB"
   ) +
@@ -587,21 +661,85 @@ ggplot(plot_df, aes(x = Year)) +
     plot.title = element_text(face = "bold", hjust = 0.5)
   )
 
-
-
-
-
-```
-
-##Simulation LAS-1B
-```{r}
-
 ```
 
 
 ##Simulation LAS-1+2
 
 ```{r}
+# Loop untuk menghitung total area sektor dan Final Demand LAS dan SType1
+final_results <- matrix(NA, nrow = nrow(LDM_matrix), ncol = ncol(LASArea))
+SType2 <- as.matrix(SType2) + 1
+storage.mode(SType2) <- "double"
+
+for (i in 1:ncol(LASArea)) {
+  r_sums <- as.vector(SType1 %*% LASArea[, i])
+  step_res <- r_sums * LPC * SType2[, i] * Constrained
+  final_results[, i] <- r_sums * LPC * SType2[, i] * Constrained
+  # Replace NaN before saving
+  step_res[is.nan(step_res)] <- 0
+  final_results[, i] <- step_res
+}
+
+# buat tabel FD keseluruhan LAS
+colnames(final_results) <- colnames(LASArea)
+fd_LAS_con <- final_results
+fd_LAS <- fd_LAS_con + fd_BAU_uncon
+
+# Loop untuk menghitung total PDRB hasil simulasi LAS 1+2
+final_results <- matrix(NA, nrow = nrow(fd_LAS), ncol = ncol(fd_LAS))
+
+for (i in 1:ncol(fd_LAS)) {
+  r_sums <- as.vector(Leontief_Inverse %*% fd_LAS[, i])
+  step_res <- r_sums 
+  final_results[, i] <- r_sums * ntbProp
+  # Replace NaN before saving
+  final_results[is.nan(final_results)] <- 0
+  #final_results[, i] <- step_res
+}
+
+# buat tabel FD keseluruhan PDRB BAU
+colnames(final_results) <- colnames(LASArea)
+pdrb_LAS12 <- final_results
+
+pdrb_LAS12_total <- colSums(pdrb_LAS12)
+plot(pdrb_LAS12_total)
+
+# Plot perbandingan BAU dan LAS1+2
+years <- 2025:2045
+
+plot_df <- data.frame(
+  Year = years,
+  pdrb_LAS1 = pdrb_LAS1_total,
+  pdrb_LAS1B = pdrb_LAS1B_total,
+  pdrb_LAS12 = pdrb_LAS12_total,
+  pdrb_BAU = pdrb_BAU_total
+)
+
+ggplot(plot_df, aes(x = Year)) +
+  geom_line(aes(y = pdrb_BAU, color = "BAU Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_BAU, color = "BAU Scenario"), size = 2) +
+  geom_line(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), size = 2) +
+  geom_line(aes(y = pdrb_LAS1B, color = "LAS1B Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS1B, color = "LAS1B Scenario"), size = 2) +
+  geom_line(aes(y = pdrb_LAS12, color = "LAS12 Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS12, color = "LAS12 Scenario"), size = 2) +
+  scale_color_manual(
+    name = "Scenario",
+    values = c("BAU Scenario" = "#D95F02", "LAS1 Scenario" = "#1B9E77", "LAS1B Scenario" = "#00aef2", "LAS12 Scenario" = "#f6d1d1")
+  ) +
+  scale_x_continuous(breaks = seq(2025, 2045, by = 5)) +
+  labs(
+    title = "PDRB Projection Comparison: BAU vs. LAS12 (2025–2045)",
+    x = "Year",
+    y = "Total PDRB"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  )
 
 ```
 
