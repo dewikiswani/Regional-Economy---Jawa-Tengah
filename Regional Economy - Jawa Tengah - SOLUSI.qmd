@@ -125,7 +125,7 @@ mean(validasi_PDRB_IO)
 # menghitung land requirement coeff (LRC) dan land productivity coeff (LPC)
 Lahan2025 <- BAULahan$"2025"
 Lahan2025_diag <- diag(Lahan2025)
-LDM_matrix <- as.matrix(LDM[, -1])
+LDM_matrix <- as.matrix(LDM[, -26])
 storage.mode(LDM_matrix) <- "double"
 LR_matrix   <- LDM_matrix %*% Lahan2025_diag
 LR <- rowSums(LR_matrix, na.rm = TRUE)
@@ -557,7 +557,7 @@ pdrb_LAS <- final_results
 pdrb_LAS_total <- colSums(pdrb_LAS)
 plot(pdrb_LAS_total)
 
-# Plot membandingkan BAU dan LAS1
+# Plot perbandingan BAU dan LAS1
 years <- 2025:2045
 
 plot_df <- data.frame(
@@ -592,6 +592,12 @@ ggplot(plot_df, aes(x = Year)) +
 
 
 ```
+
+##Simulation LAS-1B
+```{r}
+
+```
+
 
 ##Simulation LAS-1+2
 
