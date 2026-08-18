@@ -1,5 +1,5 @@
 ---
-title: "RegEco - Jawa Tengah"
+title: "Regional Economy - Jawa Tengah"
 author: "RG-3"
 format: html
 editor: visual
@@ -47,12 +47,13 @@ LASLahan <- read_excel("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/analisis
                                sheet = "LAS_Lahan",
                                col_names = TRUE)
 
-# SType1 <- read_excel("SType1.xlsx", 
-#                                sheet = "SType1", 
-#                                col_names = TRUE)
-# SType2 <- read_excel("SType2.xlsx", 
-#                                sheet = "SType2", 
-#                                col_names = TRUE)
+SType1 <- read_excel("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/analisis data/CIFOR-ICRAF indonesia/Solusi/Jawa Tengah/0_Regional Ekonomi/R - Regional Ekonomi Jateng/Data Input/SType1.xlsx",
+                               sheet = "SType1",
+                               col_names = TRUE)
+SType2 <- read_excel("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/analisis data/CIFOR-ICRAF indonesia/Solusi/Jawa Tengah/0_Regional Ekonomi/R - Regional Ekonomi Jateng/Data Input/SType2.xlsx",
+                               sheet = "SType2",
+                               col_names = TRUE)
+
 # SType3 <- read_excel("SType3.xlsx", 
 #                                sheet = "SType3", 
 #                                col_names = TRUE)
@@ -67,6 +68,9 @@ baris_totInput <- 74
 baris_totInputPrimer <- 73
 baris_pjkProduk <- 68
 tahun_proyeksi <- 2025:2045 #input section simulation
+
+# memilih kolom yang tidak diperlukan pada data input yang dibaca
+ldc_matrix <- as.matrix(ldc[, -ncol(ldc)])
 
 
 
@@ -483,7 +487,7 @@ tag_c[is.na(tag_c)] <- 0
 
 # Baca Land Distribution Coefficient (LDC) / Land Distribution Matrix (LDM)
 # LDC menghubungkan 66 sektor dengan jenis tutupan lahan (land cover)
-ldc_matrix <- as.matrix(ldc[, -ncol(ldc)])
+ldc_matrix <- ldc_matrix
 
 
 # Baca Data Luas Lahan per 5 Tahun (BAU_Lahan.xlsx)
@@ -673,10 +677,118 @@ ggplot(plot_df, aes(x = Year)) +
 
 ```
 
-
 ##Simulation LAS-1B
 
 ```{r}
+# ==============================================================================
+# MENGHITUNG LAND DISTRIBUTION MATRIX (LDM) DAN LUAS LAHAN SEKTOR (A_sektor)
+#    
+# ==============================================================================
+
+
+# Baca Land Distribution Coefficient (LDC) / Land Distribution Matrix (LDM)
+# untuk scanario 1B masih menggunakan LDc utk skenario type 1 SType1
+ldc_matrix <- as.matrix(SType1[, -ncol(SType1)]) 
+
+
+# Baca Data Luas Lahan per 5 Tahun (BAU_Lahan.xlsx)
+mat_A_sektor <- matrix(0, nrow = jml_sektor, ncol = length(tahun_proyeksi),
+                       dimnames = list(kolom_Sektor, tahun_str))
+
+tahun_str <- as.character(tahun_proyeksi)
+for (th in tahun_str) {
+  # Ambil luas land cover tahun ke-th langsung dari kolom dataframe BAU_lahan
+  area_lc_t <- as.numeric(LASLahan[[th]])
+  
+  # LDM_t = LDC %*% diag(Area_LC_t)
+  ldm_t <- ldc_matrix %*% diag(area_lc_t)
+  
+  # Total luas lahan per sektor (hektar) = Penjumlahan per baris LDM
+  mat_A_sektor[, th] <- rowSums(ldm_t)
+}
+
+# ==============================================================================
+# MENGHITUNG LRC & LPC (TAHUN DASAR 2025)
+# ==============================================================================
+fd_2025_cs <- as.numeric(fd) * tag_c
+area_2025  <- mat_A_sektor[, "2025"]
+
+# Land Requirement Coefficient (LRC) = Area / FD (ha/Rp)
+lrc <- ifelse(fd_2025_cs > 0, area_2025 / fd_2025_cs, 0)
+
+# Land Productivity Coefficient (LPC) = FD / Area (Rp/ha)
+lpc <- ifelse(area_2025 > 0, fd_2025_cs / area_2025, 0)
+
+
+# ==============================================================================
+# SIMULASI FD, MATRIX X, DAN PDRB CONSTRAINED SECTOR (2025 - 2045)
+# ==============================================================================
+fd_LAS1B_con   <- matrix(0, nrow = jml_sektor, ncol = length(tahun_proyeksi), dimnames = list(kolom_Sektor, tahun_str))
+
+for (th in tahun_str) {
+  # a. FD_cs(i) = LPC * Area_sektor(i) * tag_c
+  fd_LAS1B_con[, th] <- (lpc * mat_A_sektor[, th]) * tag_c
+}
+
+#gabungkan FD US dan CS 
+fd_LAS_1B   <- fd_BAU_uncon + fd_LAS1B_con #fd_BAU_uncon didapat dari simulation BAU
+
+# ==============================================================================
+# 3. MENGHITUNG MATRIX X TOTAL DAN PDRB TOTAL (2025 - 2045)
+# ==============================================================================
+# Inisialisasi matriks penampung Matrix X dan PDRB Total
+mat_X_total    <- matrix(0, nrow = jml_sektor, ncol = length(tahun_proyeksi), dimnames = list(kolom_Sektor, tahun_str))
+mat_PDRB_total <- matrix(0, nrow = jml_sektor, ncol = length(tahun_proyeksi), dimnames = list(kolom_Sektor, tahun_str))
+
+tahun_str <- as.character(tahun_proyeksi)
+for (th in tahun_str) {
+  # a. Matrix X Total(t) = Leontief Inverse (2025) %*% FD Total(t)
+  mat_X_total[, th]  <- as.numeric(Leontief_Inverse %*% fd_LAS_1B[, th])
+  
+  # b. PDRB Total(t) = Matrix X Total(t) * ntbProp
+  mat_PDRB_total[, th] <- mat_X_total[, th] * ntbProp
+}
+
+# keseluruhan PDRB LAS 1A
+pdrb_LAS_1B <- mat_PDRB_total
+
+pdrb_LAS_1B_total <- colSums(pdrb_LAS_1B)
+plot(pdrb_LAS_1B_total)
+
+pdrb_LAS_1B
+fd_LAS_1B
+
+# Plot membandingkan BAU dan LAS1
+years <- tahun_proyeksi
+
+plot_df <- data.frame(
+  Year = years,
+  pdrb_LAS1 = pdrb_LAS_1A_total,
+  pdrb_LAS1B = pdrb_LAS_1B_total,
+  pdrb_BAU = pdrb_BAU_total
+)
+ggplot(plot_df, aes(x = Year)) +
+  geom_line(aes(y = pdrb_BAU, color = "BAU Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_BAU, color = "BAU Scenario"), size = 2) +
+  geom_line(aes(y = pdrb_LAS1, color = "LAS1A Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS1, color = "LAS1A Scenario"), size = 2) +
+  geom_line(aes(y = pdrb_LAS1B, color = "LAS1B Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS1B, color = "LAS1B Scenario"), size = 2) +
+  scale_color_manual(
+    name = "Scenario",
+    values = c("BAU Scenario" = "#D95F02", "LAS1A Scenario" = "#1B9E77", "LAS1B Scenario" = "#00aef2")
+  ) +
+  scale_x_continuous(breaks = seq(2025, 2045, by = 5)) +
+  labs(
+    title = "PDRB Projection Comparison: BAU vs. LAS1 (2025–2045)",
+    x = "Year",
+    y = "Total PDRB"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  )
 
 ```
 
