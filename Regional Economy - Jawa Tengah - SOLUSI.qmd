@@ -21,6 +21,7 @@ library(readxl)
 library(DT)
 library(patchwork)
 library(writexl)
+library(plotly)
 
 # Data Ekonomi Provinsi
 # Baca Matriks Transaksi Inter-Industri Provinsi (Z_prov) 
@@ -48,7 +49,7 @@ SType1 <- read_excel("SType1.xlsx",
 SType2 <- read_excel("SType2.xlsx", 
                                sheet = "SType2", 
                                col_names = TRUE)
-SType3 <- read_excel("SType3.xlsx", 
+SType3 <- read_excel("SType3c.xlsx", 
                                sheet = "SType3", 
                                col_names = FALSE)
 # Penyesuaian nama Input kolom yang dibutuhkan
@@ -511,7 +512,31 @@ colnames(final_results) <- colnames(BAUArea)
 pdrb_BAU <- final_results
 
 pdrb_BAU_total <- colSums(pdrb_BAU)
-plot(pdrb_BAU_total)
+#plot(pdrb_BAU_total)
+years <- 2025:2045
+plot_df <- data.frame(
+  Year = years,
+  pdrb_BAU = pdrb_BAU_total
+)
+
+ggplot(plot_df, aes(x = Year)) +
+  geom_line(aes(y = pdrb_BAU, color = "BAU Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_BAU, color = "BAU Scenario"), size = 2) +
+  scale_color_manual(
+    name = "Scenario",
+    values = c("BAU Scenario" = "#D95F02")
+  ) +
+  scale_x_continuous(breaks = seq(2025, 2045, by = 5)) +
+  labs(
+    title = "PDRB Projection Comparison: BAU )",
+    x = "Year",
+    y = "Total PDRB"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  )
 
 ```
 
@@ -556,7 +581,7 @@ colnames(final_results) <- colnames(LASArea)
 pdrb_LAS1 <- final_results
 
 pdrb_LAS1_total <- colSums(pdrb_LAS1)
-plot(pdrb_LAS1_total)
+#plot(pdrb_LAS1_total)
 
 # Plot perbandingan BAU dan LAS1
 years <- 2025:2045
@@ -639,7 +664,7 @@ colnames(final_results) <- colnames(LASArea)
 pdrb_LAS1B <- final_results
 
 pdrb_LAS1B_total <- colSums(pdrb_LAS1B)
-plot(pdrb_LAS1B_total)
+#plot(pdrb_LAS1B_total)
 
 # Plot perbandingan BAU dan LAS1
 years <- 2025:2045
@@ -716,7 +741,7 @@ colnames(final_results) <- colnames(LASArea)
 pdrb_LAS12 <- final_results
 
 pdrb_LAS12_total <- colSums(pdrb_LAS12)
-plot(pdrb_LAS12_total)
+#plot(pdrb_LAS12_total)
 
 # Plot perbandingan BAU dan LAS1+2
 years <- 2025:2045
@@ -759,15 +784,16 @@ write_xlsx(plot_df, "PDRB_SOLUSI.xlsx")
 ##Simulation LAS-1+2+3
 
 ```{r}
+#Preparing secenario data
 SType3 <- as.matrix(SType3)
+#SType3[, 3:22] <- SType3[, 3:22] + 1
+#SType3[, 3:22] <- SType3[, 3:22] * 100
 
+#Preparing Export data for simulation
 Export <- as.matrix(io$X305)
 Export <- Export[1:66, , drop = FALSE]
 Export[is.nan(Export)] <- 0
 Export[is.na(Export)] <- 0
-
-
-
 
 # ==============================================================================
 # Simulation Script: Modifying Z_prov from Export reallocations
@@ -819,19 +845,215 @@ for (t in seq_along(sim_cols)) {
 
 # Optional: If you want 20 individual matrix variables in your environment:
 # (Creates Z_prov_1, Z_prov_2, ..., Z_prov_20)
-for (t in 1:num_years) {
-  assign(paste0("Z_prov_", t), Z_sim_list[[t]])
-}
+#for (t in 1:num_years) {
+#  assign(paste0("Z_prov_", t), Z_sim_list[[t]])
+#}
 
 # Optional: Save all 20 simulation matrices into an RData / RDS file
-saveRDS(Z_sim_list, file = "Z_prov_simulation_20years.rds")
+#saveRDS(Z_sim_list, file = "Z_prov_simulation_20years.rds")
 
 
+# Matriks Identitas 66x66
+nA_prov <- jml_sektor
+matrixI <- diag(nA_prov)
 
+# Inisialisasi List untuk Menyimpan Matriks A dan Invers Leontief Tiap Tahun
+A_sim_list                <- vector("list", num_years)
+Leontief_Inverse_sim_list <- vector("list", num_years)
+
+names(A_sim_list)                <- paste0("Year_", 1:num_years)
+names(Leontief_Inverse_sim_list) <- paste0("Year_", 1:num_years)
+
+# Looping Perhitungan A_t dan (I - A_t)^(-1) untuk 20 Tahun Simulasi
+for (t in 1:num_years) {
+  
+  # A. Ambil matriks Z simulasi tahun ke-t
+  Z_t <- Z_sim_list[[t]]
+  
+  # B. Hitung Total Input Baru (X_t) = Total Input Antara Baru + Input Primer BAU
+  X_t <- X_prov
+  X_t[X_t == 0 | is.na(X_t) | is.nan(X_t)] <- 1e-12 # Mencegah pembagian nol
+  
+  # C. Hitung Matriks Koefisien Teknis A_t = Z_t / X_t
+  A_t <- sweep(Z_t, 2, X_t, FUN = "/")
+  A_t[is.nan(A_t) | is.infinite(A_t)] <- 0
+  
+  # D. Hitung (I - A_t) dan Invers Leontief: (I - A_t)^(-1)
+  I_minus_A_t <- matrixI - A_t
+  Leontief_Inverse_t <- solve(I_minus_A_t)
+  
+  # E. Simpan hasil ke dalam list
+  A_sim_list[[t]]                <- A_t
+  Leontief_Inverse_sim_list[[t]] <- Leontief_Inverse_t
+}
+
+# ==============================================================================
+# CARA MENGAKSES HASIL
+# ==============================================================================
+
+
+# Opsi 2: Membuat variabel individu Leontief_Inverse_1 s.d. Leontief_Inverse_20 di Environment
+for (t in 1:num_years) {
+  assign(paste0("A_prov_", t), A_sim_list[[t]])
+  assign(paste0("Leontief_Inverse_", t), Leontief_Inverse_sim_list[[t]])
+}
+
+Leontief_Inverse_full_list <- c(
+  list(Year_2025 = Leontief_Inverse), 
+  Leontief_Inverse_sim_list
+)
+names(Leontief_Inverse_full_list) <- paste0("Year_", 2025:2045)
+
+# Opsi 1: Mengakses berdasarkan nama atau indeks list
+L_tahun_1  <- Leontief_Inverse_full_list[["Year_2026"]]   # Tahun 2026
+
+
+# Loop untuk menghitung total PDRB hasil simulasi LAS 1+2
+final_results <- matrix(NA, nrow = nrow(fd_LAS), ncol = ncol(fd_LAS))
+
+for (i in 1:ncol(fd_LAS)) {
+  r_sums <- as.vector(Leontief_Inverse_full_list[[i]] %*% fd_LAS[, i])
+  step_res <- r_sums 
+  final_results[, i] <- r_sums * ntbProp
+  # Replace NaN before saving
+  final_results[is.nan(final_results)] <- 0
+  #final_results[, i] <- step_res
+}
+
+# buat tabel FD keseluruhan PDRB BAU
+colnames(final_results) <- colnames(LASArea)
+pdrb_LAS123 <- final_results
+
+pdrb_LAS123_total <- colSums(pdrb_LAS123)
+#plot(pdrb_LAS123_total)
+
+# ------------------------------------------------------------------------------
+# REKAPITULASI TOTAL PDRB & VISUALISASI PROYEKSI (2025 - 2045)
+# ------------------------------------------------------------------------------
+
+# Plot perbandingan BAU dan LAS1+2
+years <- 2025:2045
+
+plot_df <- data.frame(
+  Year = years,
+  pdrb_BAU = pdrb_BAU_total,
+  pdrb_LAS1 = pdrb_LAS1_total,
+  pdrb_LAS1B = pdrb_LAS1B_total,
+  pdrb_LAS12 = pdrb_LAS12_total,
+  pdrb_LAS123 = pdrb_LAS123_total
+)
+
+hasil_simulasi <-ggplot(plot_df, aes(x = Year)) +
+  geom_line(aes(y = pdrb_BAU, color = "BAU Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_BAU, color = "BAU Scenario"), size = 2) +
+  geom_line(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), size = 2) +
+  geom_line(aes(y = pdrb_LAS1B, color = "LAS1B Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS1B, color = "LAS1B Scenario"), size = 2) +
+  geom_line(aes(y = pdrb_LAS12, color = "LAS12 Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS12, color = "LAS12 Scenario"), size = 2) +
+  geom_line(aes(y = pdrb_LAS123, color = "LAS123 Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS123, color = "LAS123 Scenario"), size = 2) +
+  scale_color_manual(
+    name = "Scenario",
+    values = c("BAU Scenario" = "#D95F02", "LAS1 Scenario" = "#1B9E77", "LAS1B Scenario" = "#00aef2", "LAS12 Scenario" = "#f6d1d1", "LAS123 Scenario" = "green")
+  ) +
+  scale_x_continuous(breaks = seq(2025, 2045, by = 5)) +
+  labs(
+    title = "PDRB Projection Comparison: BAU vs. LAS123 (2025–2045)",
+    x = "Year",
+    y = "Total PDRB"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  )
+
+hasil_simulasi
+#write_xlsx(plot_df, "PDRB_SOLUSI.xlsx")
 ```
 
 ##Comparison BAU vs LAS
 
 ```{r}
+#Tabel PDRB BAU, LAS1, LAS1+2, LAS1+2+3 seluruh BUKECAP
+final_pdrb <- plot_df
+write_xlsx(final_pdrb, "Final_PDRB_SOLUSI_Bukecap.xlsx")
+knitr::kable(
+  final_pdrb,
+  digits = 2,
+  format.args = list(big.mark = ","),
+  col.names = c("Year","BAU", "LAS 1", "LAS 1B", "LAS 12", "LAS 123"),
+  align = c("c", "r", "r", "r", "r", "r")
+)
+#Line chart PDRB BAU, LAS1, LAS1+2, LAS1+2+3 seluruh BUKECAP
+hasil_simulasi
+
+#Tabel Income BAU, LAS1, LAS1+2, LAS1+2+3 seluruh BUKECAP
+proporsiupahgaji <- sum(upah_gaji) / sum(pdrb_IO)
+final_income <- plot_df
+final_income[, -1] <- final_income[, -1] * proporsiupahgaji
+write_xlsx(final_income, "Final_Income_SOLUSI_Bukecap.xlsx")
+knitr::kable(
+  final_income,
+  digits = 2,
+  format.args = list(big.mark = ","),
+  col.names = c("Year","BAU", "LAS 1", "LAS 1B", "LAS 12", "LAS 123"),
+  align = c("c", "r", "r", "r", "r", "r")
+)
+
+#Angka perbandingan besaran PDRB BAU ves LAS1+2+3 diakhir simulasi (%)
+# Ambil row terakhir dari hasil simulasi
+df_2045 <- plot_df %>%
+  slice_tail(n = 1) %>%
+  pivot_longer(
+    cols = -Year,
+    names_to = "Scenario",
+    values_to = "PDRB"
+  ) %>%
+  mutate(
+    Scenario = recode(
+      Scenario,
+      "pdrb_BAU"    = "BAU",
+      "pdrb_LAS1"   = "LAS 1",
+      "pdrb_LAS1B"  = "LAS 1B",
+      "pdrb_LAS12"  = "LAS 12",
+      "pdrb_LAS123" = "LAS 123"
+    ),
+    Scenario = factor(Scenario, levels = c("BAU", "LAS 1", "LAS 1B", "LAS 12", "LAS 123"))
+  )
+
+# Define custom Y-axis lower bound (or calculate dynamically)
+# Option A: Dynamic lower bound (e.g., 90% of the minimum value)
+y_min <- min(df_2045$PDRB) * 0.90
+y_max <- max(df_2045$PDRB) * 1
+
+# Barplot PDRB
+ggplot(df_2045, aes(x = Scenario, y = PDRB, fill = Scenario)) +
+  geom_col(width = 0.6, show.legend = FALSE) +
+  # Safely sets the visible Y-axis range
+  coord_cartesian(ylim = c(y_min, y_max)) +
+  scale_fill_manual(
+    values = c(
+      "BAU"     = "#D95F02",
+      "LAS 1"   = "#1B9E77",
+      "LAS 1B"  = "#00aef2",
+      "LAS 12"  = "#E78AC3",
+      "LAS 123" = "#2CA02C"
+    )
+  ) +
+  scale_y_continuous(labels = scales::comma) +
+  labs(
+    title = "Projected PDRB Comparison by Scenario (Year 2045)",
+    x = "Scenario",
+    y = "Total PDRB"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    panel.grid.major.x = element_blank()
+  )
+
 
 ```
