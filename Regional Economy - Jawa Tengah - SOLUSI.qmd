@@ -1,5 +1,5 @@
 ---
-title: "Regional Economy - Jawa Tengah"
+title: "RegEco - Jawa Tengah"
 author: "RG-3"
 format: html
 editor: visual
@@ -13,51 +13,59 @@ Mengingat output sektor berbasis lahan dibatasi secara fisik oleh kapasitas tutu
 
 ## Data Input and Reading
 
-```{r}
+```{r, warning=FALSE}
 library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(readxl)
 library(DT)
 library(patchwork)
+library(writexl)
 
 # Data Ekonomi Provinsi
 # Baca Matriks Transaksi Inter-Industri Provinsi (Z_prov) 
-io <- read.csv("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/analisis data/CIFOR-ICRAF indonesia/Solusi/Jawa Tengah/0_Regional Ekonomi/R - Regional Ekonomi Jateng/IO BUKECAP.csv", 
+# io <- read.csv("IO BUKECAP.csv", 
+#                header=T,
+#                sep=",",
+#                stringsAsFactors = F)
+
+# 1. Baca data PDRB ADHK dari Sheet 'ADHK'
+
+# Data Ekonomi Provinsi
+# Baca Matriks Transaksi Inter-Industri Provinsi (Z_prov) 
+io <- read.csv("IO BUKECAP.csv", 
                header=T,
                sep=",",
                stringsAsFactors = F)
 
-# 1. Baca data PDRB ADHK dari Sheet 'ADHK'
-DeskripsiSektor <- read.csv("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/analisis data/CIFOR-ICRAF indonesia/Solusi/Jawa Tengah/0_Regional Ekonomi/R - Regional Ekonomi Jateng/deskripsi sektor.csv", 
-                            header=T,
-                            sep=",",
-                            stringsAsFactors = F)
+# 1. Baca data deskrpsi sektor
+DeskripsiSektor <- read_excel("DeskripsiSektor.xlsx", 
+                                sheet = "DeskripsiSektor", 
+                                col_names = TRUE)
 
 # LDC menghubungkan 66 sektor dengan jenis tutupan lahan (land cover)
-ldc <- read_excel("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/analisis data/CIFOR-ICRAF indonesia/Solusi/Jawa Tengah/0_Regional Ekonomi/R - Regional Ekonomi Jateng/Data Input/LDM.xlsx",
+LDM <- read_excel("LDM.xlsx",
                      sheet = "LDM", col_names = FALSE)
 
 # Baca Data Luas Lahan per 5 Tahun (BAU_Lahan.xlsx)
-bau_lahan <- read_excel("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/analisis data/CIFOR-ICRAF indonesia/Solusi/Jawa Tengah/0_Regional Ekonomi/R - Regional Ekonomi Jateng/Data Input/BAU_Lahan.xlsx",
+BAULahan <- read_excel("BAU_Lahan.xlsx",
                         sheet = "BAU_Lahan", col_names = TRUE)
 
 
-LASLahan <- read_excel("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/analisis data/CIFOR-ICRAF indonesia/Solusi/Jawa Tengah/0_Regional Ekonomi/R - Regional Ekonomi Jateng/Data Input/LAS_Lahan.xlsx",
+LASLahan <- read_excel("LAS_Lahan.xlsx",
                                sheet = "LAS_Lahan",
                                col_names = TRUE)
 
-SType1 <- read_excel("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/analisis data/CIFOR-ICRAF indonesia/Solusi/Jawa Tengah/0_Regional Ekonomi/R - Regional Ekonomi Jateng/Data Input/SType1.xlsx",
+SType1 <- read_excel("SType1.xlsx",
                                sheet = "SType1",
                                col_names = TRUE)
-SType2 <- read_excel("C:/Users/dbodro/OneDrive - CIFOR-ICRAF/dw/ICRAF/analisis data/CIFOR-ICRAF indonesia/Solusi/Jawa Tengah/0_Regional Ekonomi/R - Regional Ekonomi Jateng/Data Input/SType2.xlsx",
+SType2 <- read_excel("SType2.xlsx",
                                sheet = "SType2",
                                col_names = TRUE)
-
-# SType3 <- read_excel("SType3.xlsx", 
-#                                sheet = "SType3", 
-#                                col_names = TRUE)
-
+SType3 <- read_excel("SType3.xlsx",
+                               sheet = "SType3",
+                               col_names = FALSE)
+ 
 # Penyesuaian nama Input kolom yang dibutuhkan
 jml_sektor <- 66
 kolom_Sektor <- paste0("X", 1:66) # Membuat daftar nama kolom x1, x2, ..., x66 secara otomatis
@@ -67,26 +75,21 @@ kolom_TOutput <- "X700"
 baris_totInput <- 74
 baris_totInputPrimer <- 73
 baris_pjkProduk <- 68
-tahun_proyeksi <- 2025:2045 #input section simulation
 
-# memilih kolom yang tidak diperlukan pada data input yang dibaca
-ldc_matrix <- as.matrix(ldc[, -ncol(ldc)])
+```
 
+##Pre-Processing
 
-
+```{r, warning=FALSE}
 # pembacaan matrix A
 matrixA <- io %>%
   slice(1:jml_sektor) %>%       # Mengambil baris 1 hingga 66
-  select(kolom_Sektor)        # Mengambil rentang kolom dari x1 sampai x66
+  select(all_of(kolom_Sektor))   # Mengambil rentang kolom dari x1 sampai x66
 
 Z_prov <- data.matrix(matrixA)
 
-total_input_antara <- colSums(Z_prov) #total input antara
-total_input_primer <- io[baris_totInputPrimer,kolom_Sektor] #total input primer
-total_input <- io[baris_totInput,kolom_Sektor] #total input primer
-
 # Total Output Sektor di Provinsi (X_prov)
-X_prov <- as.numeric(io[74,kolom_Sektor])
+X_prov <- as.numeric(io[baris_totInput,kolom_Sektor])
 X_prov[is.nan(X_prov)] <- 0 #jika Nan diganti 0 
 
 # Matriks Koefisien Teknis Provinsi (A_prov = Z_prov / X_prov)
@@ -100,17 +103,11 @@ matrixI <- diag(nA_prov)
 # Menghitung (I - A) dan mencari Invers Leontief: (I - A)^(-1)
 I_minus_A <- matrixI - A_prov
 Leontief_Inverse <- solve(I_minus_A)
-Leontief_Inverse[is.nan(Leontief_Inverse)] <- 0 #jika Nan diganti 0 
-sum(colSums(Leontief_Inverse))
-
 
 #kolom final demand
 fd <- io[1:jml_sektor,kolom_FD]
-```
 
-##Pre-Processing
 
-```{r}
 #Perkalian Matriks: (I - A)^-1 %*% FD
 # Menggunakan operator %*% untuk perkalian aljabar linier (bukan * biasa)
 matrix_X <- Leontief_Inverse %*% fd
@@ -140,11 +137,25 @@ pdrb_IO <- totInputPrimer
 validasi_PDRB_IO <- (kali_NTB/pdrb_IO*100)
 validasi_PDRB_IO[is.nan(validasi_PDRB_IO) | is.infinite(validasi_PDRB_IO)] <- 0
 mean(validasi_PDRB_IO)
+
+# menghitung land requirement coeff (LRC) dan land productivity coeff (LPC)
+Lahan2025 <- BAULahan$"2025"
+Lahan2025_diag <- diag(Lahan2025)
+LDM_matrix <- as.matrix(LDM[, -26])
+storage.mode(LDM_matrix) <- "double"
+LR_matrix   <- LDM_matrix %*% Lahan2025_diag
+LR <- rowSums(LR_matrix, na.rm = TRUE)
+LRC <- LR/fd
+LPC <- 1/LRC
+
+# marker sektor Constrained dan Unconstrained
+Unconstrained <- as.matrix(DeskripsiSektor[, 6])
+Constrained <- as.matrix(DeskripsiSektor[, 5])
 ```
 
 ## Linkages analysis
 
-```{r}
+```{r, warning=FALSE}
 # ==============================================================================
 # MENGHITUNG Backward dan Forward Linkage
 # ==============================================================================
@@ -219,8 +230,15 @@ p_linkage
 
 ##Multiplier Analysis
 
-```{r}
+```{r, warning=FALSE}
+# ==============================================================================
+# MENGHITUNG MULTIPLIERS (OUTPUT, INCOME, LABOUR, IMPORT)
+# TINGKAT SEKTORAL DAN RATA-RATA KSM (SEKTOR MAKRO)
+# ==============================================================================
 
+# ------------------------------------------------------------------------------
+# PERSIAPAN DATA KOEFISIEN INPUT PRIMER
+# ------------------------------------------------------------------------------
 # Catatan: Sesuaikan indeks baris pada file IO Anda jika berbeda.
 baris_upah  <- 70  # Baris Kompensasi Tenaga Kerja / Gaji & Upah
 baris_impor <- 69  # Baris Impor / Input Luar Daerah
@@ -234,11 +252,12 @@ h[is.nan(h) | is.infinite(h)] <- 0
 h_diag <- diag(h)
 
 # B. Koefisien Tenaga Kerja Langsung (w)
-tk_prov <- as.numeric(DeskripsiSektor[, "TenagaKerja"])
+tk_prov <- DeskripsiSektor[, "TenagaKerja"]
 tk_prov[is.na(tk_prov)] <- 0
 w <- tk_prov / X_prov
-w[is.nan(w) | is.infinite(w)] <- 0
-w_diag <- diag(w)
+w[is.na(w)] <- 0
+w_diag <- diag(unlist(w))
+w <- diag(w_diag)
 
 # C. Koefisien Impor Langsung (m)
 impor <- as.numeric(io[baris_impor, kolom_Sektor])
@@ -257,15 +276,12 @@ output_mult <- colSums(Leontief_Inverse) # sama dengan TBL
 
 # 2) Income Multiplier & Effect (Pendapatan)
 income_effect <- h_diag %*% Leontief_Inverse
-# income_mult <- colSums(income_effect) #sama dengan income multiplier di excel 
 
 # 3) Labour Multiplier & Effect (Tenaga Kerja)
 labour_effect <- w_diag %*% Leontief_Inverse
-# labour_mult   <- colSums(labour_effect)
 
 # 4) Import Multiplier & Effect (Kebocoran Impor)
 import_effect <- im_diag %*% Leontief_Inverse
-# import_mult   <- colSums(import_effect)
 
 # ------------------------------------------------------------------------------
 # PERHITUNGAN DAMPAK TOTAL (EFFECTS) & MULTIPLIER TIPE I
@@ -338,7 +354,7 @@ top15_output <- tabel_multiplier_sektoral %>%
   slice(1:15)
 
 # ------------------------------------------------------------------------------
-# 2. PEMBUATAN PLOT MASING-MASING INDIKATOR
+# PEMBUATAN PLOT MASING-MASING INDIKATOR
 # ------------------------------------------------------------------------------
 
 # Plot 1: Top 15 Income Effect
@@ -412,10 +428,10 @@ p_output <- ggplot(top15_import, aes(x = reorder(nama_Sektor, Output_Multiplier)
     axis.text.y = element_text(size = 8.5)
   )
 
-p_income
-p_labour
 p_output
 p_import
+p_labour
+p_income
 
 # ------------------------------------------------------------------------------
 # 3. GABUNGKAN DAN TAMPILKAN GRAFIK
@@ -432,240 +448,149 @@ gabungan_plot <- p_income / p_labour / p_import / p_output +
     )
   )
 
+# Tampilkan di RStudio Plots Pane
+  print(gabungan_plot)
 
 ```
 
 ##Simulation BAU
 
-```{r}
+```{r, warning=FALSE}
+## Ekstrak vector rerata pertumbuhan sektor unconstrained
+rate <- DeskripsiSektor$RateUnconstrained
 
-#siapkan dulu FD nya utk US 
-# 1. Menyiapkan Matriks Penampung (2025 - 2045)
-tahun_proyeksi <- tahun_proyeksi
-n_sektor <- jml_sektor # 66 sektor
+## Buat matrix untuk menyimpan hasil
+all_steps <- matrix(NA, nrow = 66, ncol = 20)
+current_val <- fd
 
-# Matriks penyimpanan berukuran 66 sektor x 21 tahun
-fd_BAU_uncon   <- matrix(0, nrow = n_sektor, ncol = length(tahun_proyeksi), dimnames = list(kolom_Sektor, tahun_proyeksi))
-
-# Ambil kolom tag unconstrained (bernilai 1 untuk unconstrained, 0 untuk constrained)
-# Catatan: Sesuaikan nama kolom jika R mengubah spasi menjadi titik saat read.csv
-tag_uc <- as.numeric(DeskripsiSektor$Unconstrained)
-tag_uc[is.na(tag_uc)] <- 0
-
-# 2. Mengisi Data Tahun Dasar (2025)
-fd_BAU_uncon[, "2025"]   <- as.numeric(fd) * tag_uc
-
-
-# 3. Looping Proyeksi Berantai (2026 - 2045)
-# Mengambil rate_uc dari deskripsi sektor
-rate_uc_raw <- as.numeric(DeskripsiSektor$RateUnconstrained)
-rate_uc_raw[is.na(rate_uc_raw)] <- 0
-rate_uc <- rate_uc_raw * tag_uc  # Sektor constrained otomatis menjadi 0
-
-
-for (th in 2026:2045) {
-  th_str  <- as.character(th)
-  th_prev <- as.character(th - 1)
-  
-  # a. FD tahun (t) merujuk FD tahun sebelumnya (t-1)
-  fd_BAU_uncon[, th_str] <- fd_BAU_uncon[, th_prev] * (1 + rate_uc) #kroscek excel sesuai nilainya
+## Loop untuk menghitung FD scenario
+for (i in 1:20) {
+  current_val <- ((current_val * rate) + current_val) * Unconstrained
+  all_steps[, i] <- current_val  # Store result in column 'i'
 }
 
+## Memberikan nama kolom pada hasil perhitungan FD scenario
+colnames(all_steps) <- paste0("FD", 2026:2045)
 
+# add FD2025 into the new matrix
+fd_BAU_uncon <- all_steps
+fd_BAU2025 <- fd * Unconstrained
+fd_BAU_uncon <- cbind(fd_BAU2025, fd_BAU_uncon)
+colnames(fd_BAU_uncon)[1] <- "FD2025"
 
+# Extract data luasan tutupan lahan dari hasil simulasi BAU
+BAUArea <- as.matrix(BAULahan[, (ncol(BAULahan) - 20):ncol(BAULahan)])
+storage.mode(BAUArea) <- "double"
 
+# Persiapkan data LDM dan LPC
+LDM_matrix    <- as.matrix(LDM_matrix)
+LPC           <- as.numeric(LPC)
+Unconstrained <- as.numeric(Unconstrained)
+num_rows <- nrow(LDM_matrix)
+num_cols <- ncol(BAUArea)
 
-# ==============================================================================
-# MENGHITUNG LAND DISTRIBUTION MATRIX (LDM) DAN LUAS LAHAN SEKTOR (A_sektor)
-#    
-# ==============================================================================
+# Loop untuk menghitung total area sektor dan Final Demand BAU
+final_results <- matrix(NA, nrow = nrow(LDM_matrix), ncol = ncol(BAUArea))
 
-#siapkan dulu FD nya utk CS
-# Ambil kolom tag unconstrained (bernilai 1 untuk unconstrained, 0 untuk constrained)
-tag_c <- as.numeric(DeskripsiSektor$Constrained)
-tag_c[is.na(tag_c)] <- 0
-
-# Baca Land Distribution Coefficient (LDC) / Land Distribution Matrix (LDM)
-# LDC menghubungkan 66 sektor dengan jenis tutupan lahan (land cover)
-ldc_matrix <- ldc_matrix
-
-
-# Baca Data Luas Lahan per 5 Tahun (BAU_Lahan.xlsx)
-bau_lahan <- bau_lahan
-
-# buat matrix A = luas lahan land cover
-tahun_str <- as.character(tahun_proyeksi)
-mat_A_sektor <- matrix(0, nrow = jml_sektor, ncol = length(tahun_proyeksi),
-                       dimnames = list(kolom_Sektor, tahun_str))
-
-for (th in tahun_str) {
-  # Ambil luas land cover tahun ke-th langsung dari kolom dataframe BAU_lahan
-  area_lc_t <- as.numeric(bau_lahan[[th]])
-  
-  # LDM_t = LDC %*% diag(Area_LC_t)
-  ldm_t <- ldc_matrix %*% diag(area_lc_t)
-  
-  # Total luas lahan per sektor (hektar) = Penjumlahan per baris LDM
-  mat_A_sektor[, th] <- rowSums(ldm_t)
+for (i in 1:ncol(BAUArea)) {
+  r_sums <- as.vector(LDM_matrix %*% BAUArea[, i])
+  step_res <- r_sums * LPC * Constrained
+  final_results[, i] <- r_sums * LPC * Constrained
+  # Replace NaN before saving
+  step_res[is.nan(step_res)] <- 0
+  final_results[, i] <- step_res
 }
 
-# ==============================================================================
-# MENGHITUNG LRC & LPC (TAHUN DASAR 2025)
-# ==============================================================================
-fd_2025_cs <- as.numeric(fd) * tag_c
-area_2025  <- mat_A_sektor[, "2025"]
+# buat tabel FD keseluruhan BAU
+colnames(final_results) <- colnames(BAUArea)
+fd_BAU_con <- final_results
+fd_BAU <- fd_BAU_con + fd_BAU_uncon
 
-# Land Requirement Coefficient (LRC) = Area / FD (ha/Rp)
-lrc <- ifelse(fd_2025_cs > 0, area_2025 / fd_2025_cs, 0)
+# Loop untuk menghitung total PDRB hasil simulasi BAU
+final_results <- matrix(NA, nrow = nrow(fd_BAU), ncol = ncol(fd_BAU))
 
-# Land Productivity Coefficient (LPC) = FD / Area (Rp/ha)
-lpc <- ifelse(area_2025 > 0, fd_2025_cs / area_2025, 0)
-
-
-# ==============================================================================
-# SIMULASI FD, MATRIX X, DAN PDRB CONSTRAINED SECTOR (2025 - 2045)
-# ==============================================================================
-fd_BAU_con   <- matrix(0, nrow = jml_sektor, ncol = length(tahun_proyeksi), dimnames = list(kolom_Sektor, tahun_str))
-
-for (th in tahun_str) {
-  # a. FD_cs(i) = LPC * Area_sektor(i) * tag_c
-  fd_BAU_con[, th] <- (lpc * mat_A_sektor[, th]) * tag_c
+for (i in 1:ncol(fd_BAU)) {
+  r_sums <- as.vector(Leontief_Inverse %*% fd_BAU[, i])
+  step_res <- r_sums 
+  final_results[, i] <- r_sums * ntbProp
+  # Replace NaN before saving
+  final_results[is.nan(final_results)] <- 0
+  #final_results[, i] <- step_res
 }
 
-#gabungkan FD US dan CS 
-fd_BAU   <- fd_BAU_uncon + fd_BAU_con 
-
-# ==============================================================================
-# 3. MENGHITUNG MATRIX X TOTAL DAN PDRB TOTAL (2025 - 2045)
-# ==============================================================================
-# Inisialisasi matriks penampung Matrix X dan PDRB Total
-mat_X_total    <- matrix(0, nrow = jml_sektor, ncol = length(tahun_proyeksi), dimnames = list(kolom_Sektor, tahun_str))
-mat_PDRB_total <- matrix(0, nrow = jml_sektor, ncol = length(tahun_proyeksi), dimnames = list(kolom_Sektor, tahun_str))
-
-for (th in tahun_str) {
-  # a. Matrix X Total(t) = Leontief Inverse (2025) %*% FD Total(t)
-  mat_X_total[, th]  <- as.numeric(Leontief_Inverse %*% fd_BAU[, th])
-  
-  # b. PDRB Total(t) = Matrix X Total(t) * ntbProp
-  mat_PDRB_total[, th] <- mat_X_total[, th] * ntbProp
-}
-
-# keseluruhan PDRB BAU
-pdrb_BAU <- mat_PDRB_total
+# buat tabel FD keseluruhan PDRB BAU
+colnames(final_results) <- colnames(BAUArea)
+pdrb_BAU <- final_results
 
 pdrb_BAU_total <- colSums(pdrb_BAU)
 plot(pdrb_BAU_total)
 
-pdrb_BAU
-fd_BAU
-
 ```
 
-##Simulation LAS-1A
+##Simulation LAS-1
 
-```{r}
-# ==============================================================================
-# MENGHITUNG LAND DISTRIBUTION MATRIX (LDM) DAN LUAS LAHAN SEKTOR (A_sektor)
-#    
-# ==============================================================================
+```{r, warning=FALSE}
+# Extract data luasan tutupan lahan dari hasil simulasi BAU
+LASArea <- as.matrix(LASLahan[, (ncol(LASLahan) - 20):ncol(LASLahan)])
+storage.mode(LASArea) <- "double"
 
-#siapkan dulu FD nya utk CS
-# Ambil kolom tag unconstrained (bernilai 1 untuk unconstrained, 0 untuk constrained)
-tag_c <- as.numeric(DeskripsiSektor$Constrained)
-tag_c[is.na(tag_c)] <- 0
+# Loop untuk menghitung total area sektor dan Final Demand LAS
+final_results <- matrix(NA, nrow = nrow(LDM_matrix), ncol = ncol(LASArea))
 
-# Baca Land Distribution Coefficient (LDC) / Land Distribution Matrix (LDM)
-# untuk scanario 1A masih menggunakan LDM yang sama dengan BAU
-ldc_matrix <- as.matrix(ldc[, -ncol(ldc)]) 
-
-
-# Baca Data Luas Lahan per 5 Tahun (BAU_Lahan.xlsx)
-mat_A_sektor <- matrix(0, nrow = jml_sektor, ncol = length(tahun_proyeksi),
-                       dimnames = list(kolom_Sektor, tahun_str))
-
-tahun_str <- as.character(tahun_proyeksi)
-for (th in tahun_str) {
-  # Ambil luas land cover tahun ke-th langsung dari kolom dataframe BAU_lahan
-  area_lc_t <- as.numeric(LASLahan[[th]])
-  
-  # LDM_t = LDC %*% diag(Area_LC_t)
-  ldm_t <- ldc_matrix %*% diag(area_lc_t)
-  
-  # Total luas lahan per sektor (hektar) = Penjumlahan per baris LDM
-  mat_A_sektor[, th] <- rowSums(ldm_t)
+for (i in 1:ncol(LASArea)) {
+  r_sums <- as.vector(LDM_matrix %*% LASArea[, i])
+  step_res <- r_sums * LPC * Constrained
+  final_results[, i] <- r_sums * LPC * Constrained
+  # Replace NaN before saving
+  step_res[is.nan(step_res)] <- 0
+  final_results[, i] <- step_res
 }
 
-# ==============================================================================
-# MENGHITUNG LRC & LPC (TAHUN DASAR 2025)
-# ==============================================================================
-fd_2025_cs <- as.numeric(fd) * tag_c
-area_2025  <- mat_A_sektor[, "2025"]
+# buat tabel FD keseluruhan LAS
+colnames(final_results) <- colnames(LASArea)
+fd_LAS_con <- final_results
+fd_LAS <- fd_LAS_con + fd_BAU_uncon
 
-# Land Requirement Coefficient (LRC) = Area / FD (ha/Rp)
-lrc <- ifelse(fd_2025_cs > 0, area_2025 / fd_2025_cs, 0)
+# Loop untuk menghitung total PDRB hasil simulasi LAS
+final_results <- matrix(NA, nrow = nrow(fd_LAS), ncol = ncol(fd_LAS))
 
-# Land Productivity Coefficient (LPC) = FD / Area (Rp/ha)
-lpc <- ifelse(area_2025 > 0, fd_2025_cs / area_2025, 0)
-
-
-# ==============================================================================
-# SIMULASI FD, MATRIX X, DAN PDRB CONSTRAINED SECTOR (2025 - 2045)
-# ==============================================================================
-fd_LAS_con   <- matrix(0, nrow = jml_sektor, ncol = length(tahun_proyeksi), dimnames = list(kolom_Sektor, tahun_str))
-
-for (th in tahun_str) {
-  # a. FD_cs(i) = LPC * Area_sektor(i) * tag_c
-  fd_LAS_con[, th] <- (lpc * mat_A_sektor[, th]) * tag_c
+for (i in 1:ncol(fd_LAS)) {
+  r_sums <- as.vector(Leontief_Inverse %*% fd_LAS[, i])
+  step_res <- r_sums 
+  final_results[, i] <- r_sums * ntbProp
+  # Replace NaN before saving
+  final_results[is.nan(final_results)] <- 0
+  #final_results[, i] <- step_res
 }
 
-#gabungkan FD US dan CS 
-fd_LAS_1A   <- fd_BAU_uncon + fd_LAS_con #fd_BAU_uncon didapat dari simulation BAU
+# buat tabel FD keseluruhan PDRB BAU
+colnames(final_results) <- colnames(LASArea)
+pdrb_LAS1 <- final_results
 
-# ==============================================================================
-# 3. MENGHITUNG MATRIX X TOTAL DAN PDRB TOTAL (2025 - 2045)
-# ==============================================================================
-# Inisialisasi matriks penampung Matrix X dan PDRB Total
-mat_X_total    <- matrix(0, nrow = jml_sektor, ncol = length(tahun_proyeksi), dimnames = list(kolom_Sektor, tahun_str))
-mat_PDRB_total <- matrix(0, nrow = jml_sektor, ncol = length(tahun_proyeksi), dimnames = list(kolom_Sektor, tahun_str))
+pdrb_LAS1_total <- colSums(pdrb_LAS1)
+plot(pdrb_LAS1_total)
 
-tahun_str <- as.character(tahun_proyeksi)
-for (th in tahun_str) {
-  # a. Matrix X Total(t) = Leontief Inverse (2025) %*% FD Total(t)
-  mat_X_total[, th]  <- as.numeric(Leontief_Inverse %*% fd_LAS_1A[, th])
-  
-  # b. PDRB Total(t) = Matrix X Total(t) * ntbProp
-  mat_PDRB_total[, th] <- mat_X_total[, th] * ntbProp
-}
-
-# keseluruhan PDRB LAS 1A
-pdrb_LAS_1A <- mat_PDRB_total
-
-pdrb_LAS_1A_total <- colSums(pdrb_LAS_1A)
-plot(pdrb_LAS_1A_total)
-
-pdrb_LAS_1A
-
-# Plot membandingkan BAU dan LAS1
-years <- tahun_proyeksi
+# Plot perbandingan BAU dan LAS1
+years <- 2025:2045
 
 plot_df <- data.frame(
   Year = years,
-  pdrb_LAS = pdrb_LAS_1A_total,
+  pdrb_LAS1 = pdrb_LAS1_total,
   pdrb_BAU = pdrb_BAU_total
 )
 
 ggplot(plot_df, aes(x = Year)) +
   geom_line(aes(y = pdrb_BAU, color = "BAU Scenario"), linewidth = 1.1) +
   geom_point(aes(y = pdrb_BAU, color = "BAU Scenario"), size = 2) +
-  geom_line(aes(y = pdrb_LAS, color = "LAS Scenario (1A)"), linewidth = 1.1) +
-  geom_point(aes(y = pdrb_LAS, color = "LAS Scenario (1A)"), size = 2) +
+  geom_line(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), size = 2) +
   scale_color_manual(
     name = "Scenario",
-    values = c("BAU Scenario" = "#D95F02", "LAS Scenario (1A)" = "#1B9E77")
+    values = c("BAU Scenario" = "#D95F02", "LAS1 Scenario" = "#1B9E77")
   ) +
   scale_x_continuous(breaks = seq(2025, 2045, by = 5)) +
   labs(
-    title = "PDRB Projection Comparison: BAU vs. LAS (2025–2045)",
+    title = "PDRB Projection Comparison: BAU vs. LAS1 (2025–2045)",
     x = "Year",
     y = "Total PDRB"
   ) +
@@ -674,109 +599,81 @@ ggplot(plot_df, aes(x = Year)) +
     legend.position = "bottom",
     plot.title = element_text(face = "bold", hjust = 0.5)
   )
-
 ```
 
 ##Simulation LAS-1B
 
-```{r}
-# ==============================================================================
-# MENGHITUNG LAND DISTRIBUTION MATRIX (LDM) DAN LUAS LAHAN SEKTOR (A_sektor)
-#    
-# ==============================================================================
+```{r, warning=FALSE}
+# Loop untuk menghitung total area sektor dan Final Demand LAS dan SType1
+final_results <- matrix(NA, nrow = nrow(LDM_matrix), ncol = ncol(LASArea))
+SType1 <- as.matrix(SType1[, -26])
+storage.mode(SType1) <- "double"
+
+# menghitung land requirement coeff (LRC) dan land productivity coeff (LPC)
+Lahan2025 <- LASLahan$"2025"
+Lahan2025_diag <- diag(Lahan2025)
+LDM_matrix <- as.matrix(SType1[, -26])
+storage.mode(LDM_matrix) <- "double"
+LR_matrix   <- LDM_matrix %*% Lahan2025_diag
+LR <- rowSums(LR_matrix, na.rm = TRUE)
+LRC <- LR/fd
+LPC <- 1/LRC
+LPC <- as.numeric(LPC)
 
 
-# Baca Land Distribution Coefficient (LDC) / Land Distribution Matrix (LDM)
-# untuk scanario 1B masih menggunakan LDc utk skenario type 1 SType1
-ldc_matrix <- as.matrix(SType1[, -ncol(SType1)]) 
-
-
-# Baca Data Luas Lahan per 5 Tahun (BAU_Lahan.xlsx)
-mat_A_sektor <- matrix(0, nrow = jml_sektor, ncol = length(tahun_proyeksi),
-                       dimnames = list(kolom_Sektor, tahun_str))
-
-tahun_str <- as.character(tahun_proyeksi)
-for (th in tahun_str) {
-  # Ambil luas land cover tahun ke-th langsung dari kolom dataframe BAU_lahan
-  area_lc_t <- as.numeric(LASLahan[[th]])
-  
-  # LDM_t = LDC %*% diag(Area_LC_t)
-  ldm_t <- ldc_matrix %*% diag(area_lc_t)
-  
-  # Total luas lahan per sektor (hektar) = Penjumlahan per baris LDM
-  mat_A_sektor[, th] <- rowSums(ldm_t)
+for (i in 1:ncol(LASArea)) {
+  r_sums <- as.vector(SType1 %*% LASArea[, i])
+  step_res <- r_sums * LPC * Constrained
+  final_results[, i] <- r_sums * LPC * Constrained
+  # Replace NaN before saving
+  step_res[is.nan(step_res)] <- 0
+  final_results[, i] <- step_res
 }
 
-# ==============================================================================
-# MENGHITUNG LRC & LPC (TAHUN DASAR 2025)
-# ==============================================================================
-fd_2025_cs <- as.numeric(fd) * tag_c
-area_2025  <- mat_A_sektor[, "2025"]
+# buat tabel FD keseluruhan LAS
+colnames(final_results) <- colnames(LASArea)
+fd_LAS_con <- final_results
+fd_LAS <- fd_LAS_con + fd_BAU_uncon
 
-# Land Requirement Coefficient (LRC) = Area / FD (ha/Rp)
-lrc <- ifelse(fd_2025_cs > 0, area_2025 / fd_2025_cs, 0)
+# Loop untuk menghitung total PDRB hasil simulasi LAS
+final_results <- matrix(NA, nrow = nrow(fd_LAS), ncol = ncol(fd_LAS))
 
-# Land Productivity Coefficient (LPC) = FD / Area (Rp/ha)
-lpc <- ifelse(area_2025 > 0, fd_2025_cs / area_2025, 0)
-
-
-# ==============================================================================
-# SIMULASI FD, MATRIX X, DAN PDRB CONSTRAINED SECTOR (2025 - 2045)
-# ==============================================================================
-fd_LAS1B_con   <- matrix(0, nrow = jml_sektor, ncol = length(tahun_proyeksi), dimnames = list(kolom_Sektor, tahun_str))
-
-for (th in tahun_str) {
-  # a. FD_cs(i) = LPC * Area_sektor(i) * tag_c
-  fd_LAS1B_con[, th] <- (lpc * mat_A_sektor[, th]) * tag_c
+for (i in 1:ncol(fd_LAS)) {
+  r_sums <- as.vector(Leontief_Inverse %*% fd_LAS[, i])
+  step_res <- r_sums 
+  final_results[, i] <- r_sums * ntbProp
+  # Replace NaN before saving
+  final_results[is.nan(final_results)] <- 0
+  #final_results[, i] <- step_res
 }
 
-#gabungkan FD US dan CS 
-fd_LAS_1B   <- fd_BAU_uncon + fd_LAS1B_con #fd_BAU_uncon didapat dari simulation BAU
+# buat tabel FD keseluruhan PDRB BAU
+colnames(final_results) <- colnames(LASArea)
+pdrb_LAS1B <- final_results
 
-# ==============================================================================
-# 3. MENGHITUNG MATRIX X TOTAL DAN PDRB TOTAL (2025 - 2045)
-# ==============================================================================
-# Inisialisasi matriks penampung Matrix X dan PDRB Total
-mat_X_total    <- matrix(0, nrow = jml_sektor, ncol = length(tahun_proyeksi), dimnames = list(kolom_Sektor, tahun_str))
-mat_PDRB_total <- matrix(0, nrow = jml_sektor, ncol = length(tahun_proyeksi), dimnames = list(kolom_Sektor, tahun_str))
+pdrb_LAS1B_total <- colSums(pdrb_LAS1B)
+plot(pdrb_LAS1B_total)
 
-tahun_str <- as.character(tahun_proyeksi)
-for (th in tahun_str) {
-  # a. Matrix X Total(t) = Leontief Inverse (2025) %*% FD Total(t)
-  mat_X_total[, th]  <- as.numeric(Leontief_Inverse %*% fd_LAS_1B[, th])
-  
-  # b. PDRB Total(t) = Matrix X Total(t) * ntbProp
-  mat_PDRB_total[, th] <- mat_X_total[, th] * ntbProp
-}
-
-# keseluruhan PDRB LAS 1A
-pdrb_LAS_1B <- mat_PDRB_total
-
-pdrb_LAS_1B_total <- colSums(pdrb_LAS_1B)
-plot(pdrb_LAS_1B_total)
-
-pdrb_LAS_1B
-fd_LAS_1B
-
-# Plot membandingkan BAU dan LAS1
-years <- tahun_proyeksi
+# Plot perbandingan BAU dan LAS1
+years <- 2025:2045
 
 plot_df <- data.frame(
   Year = years,
-  pdrb_LAS1 = pdrb_LAS_1A_total,
-  pdrb_LAS1B = pdrb_LAS_1B_total,
+  pdrb_LAS1 = pdrb_LAS1_total,
+  pdrb_LAS1B = pdrb_LAS1B_total,
   pdrb_BAU = pdrb_BAU_total
 )
+
 ggplot(plot_df, aes(x = Year)) +
   geom_line(aes(y = pdrb_BAU, color = "BAU Scenario"), linewidth = 1.1) +
   geom_point(aes(y = pdrb_BAU, color = "BAU Scenario"), size = 2) +
-  geom_line(aes(y = pdrb_LAS1, color = "LAS1A Scenario"), linewidth = 1.1) +
-  geom_point(aes(y = pdrb_LAS1, color = "LAS1A Scenario"), size = 2) +
+  geom_line(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), size = 2) +
   geom_line(aes(y = pdrb_LAS1B, color = "LAS1B Scenario"), linewidth = 1.1) +
   geom_point(aes(y = pdrb_LAS1B, color = "LAS1B Scenario"), size = 2) +
   scale_color_manual(
     name = "Scenario",
-    values = c("BAU Scenario" = "#D95F02", "LAS1A Scenario" = "#1B9E77", "LAS1B Scenario" = "#00aef2")
+    values = c("BAU Scenario" = "#D95F02", "LAS1 Scenario" = "#1B9E77", "LAS1B Scenario" = "#00aef2")
   ) +
   scale_x_continuous(breaks = seq(2025, 2045, by = 5)) +
   labs(
@@ -792,16 +689,276 @@ ggplot(plot_df, aes(x = Year)) +
 
 ```
 
-##Simulation LAS-1B+2
+##Simulation LAS-1+2
 
-```{r}
+```{r, warning=FALSE}
+# Loop untuk menghitung total area sektor dan Final Demand LAS dan SType1
+final_results <- matrix(NA, nrow = nrow(LDM_matrix), ncol = ncol(LASArea))
+SType2 <- as.matrix(SType2) + 1
+storage.mode(SType2) <- "double"
 
+for (i in 1:ncol(LASArea)) {
+  r_sums <- as.vector(SType1 %*% LASArea[, i])
+  step_res <- r_sums * LPC * SType2[, i] * Constrained
+  final_results[, i] <- r_sums * LPC * SType2[, i] * Constrained
+  # Replace NaN before saving
+  step_res[is.nan(step_res)] <- 0
+  final_results[, i] <- step_res
+}
 
+# buat tabel FD keseluruhan LAS
+colnames(final_results) <- colnames(LASArea)
+fd_LAS_con <- final_results
+fd_LAS <- fd_LAS_con + fd_BAU_uncon
+
+# Loop untuk menghitung total PDRB hasil simulasi LAS 1+2
+final_results <- matrix(NA, nrow = nrow(fd_LAS), ncol = ncol(fd_LAS))
+
+for (i in 1:ncol(fd_LAS)) {
+  r_sums <- as.vector(Leontief_Inverse %*% fd_LAS[, i])
+  step_res <- r_sums 
+  final_results[, i] <- r_sums * ntbProp
+  # Replace NaN before saving
+  final_results[is.nan(final_results)] <- 0
+  #final_results[, i] <- step_res
+}
+
+# buat tabel FD keseluruhan PDRB BAU
+colnames(final_results) <- colnames(LASArea)
+pdrb_LAS12 <- final_results
+
+pdrb_LAS12_total <- colSums(pdrb_LAS12)
+plot(pdrb_LAS12_total)
+
+# Plot perbandingan BAU dan LAS1+2
+years <- 2025:2045
+
+plot_df <- data.frame(
+  Year = years,
+  pdrb_LAS1 = pdrb_LAS1_total,
+  pdrb_LAS1B = pdrb_LAS1B_total,
+  pdrb_LAS12 = pdrb_LAS12_total,
+  pdrb_BAU = pdrb_BAU_total
+)
+
+ggplot(plot_df, aes(x = Year)) +
+  geom_line(aes(y = pdrb_BAU, color = "BAU Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_BAU, color = "BAU Scenario"), size = 2) +
+  geom_line(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), size = 2) +
+  geom_line(aes(y = pdrb_LAS1B, color = "LAS1B Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS1B, color = "LAS1B Scenario"), size = 2) +
+  geom_line(aes(y = pdrb_LAS12, color = "LAS12 Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS12, color = "LAS12 Scenario"), size = 2) +
+  scale_color_manual(
+    name = "Scenario",
+    values = c("BAU Scenario" = "#D95F02", "LAS1 Scenario" = "#1B9E77", "LAS1B Scenario" = "#00aef2", "LAS12 Scenario" = "#f6d1d1")
+  ) +
+  scale_x_continuous(breaks = seq(2025, 2045, by = 5)) +
+  labs(
+    title = "PDRB Projection Comparison: BAU vs. LAS12 (2025–2045)",
+    x = "Year",
+    y = "Total PDRB"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  )
+write_xlsx(plot_df, "PDRB_SOLUSI.xlsx")
 ```
 
-##Simulation LAS-1B+2+3
+##Simulation LAS-1+2+3
 
 ```{r}
+SType3 <- as.matrix(SType3)
+#SType3[, 3:22] <- SType3[, 3:22] + 1
+#SType3[, 3:22] <- SType3[, 3:22] * 100
+
+Export <- as.matrix(io$X305)
+Export <- Export[1:66, , drop = FALSE]
+Export[is.nan(Export)] <- 0
+Export[is.na(Export)] <- 0
+
+
+
+
+# ==============================================================================
+# Simulation Script: Modifying Z_prov from Export reallocations
+# ==============================================================================
+
+# Number of simulation years (Columns 3 to 22 = 20 years)
+sim_cols <- 3:22
+num_years <- length(sim_cols)
+
+# Create a list to store the 20 new Z_prov matrices
+Z_sim_list <- vector("list", num_years)
+names(Z_sim_list) <- paste0("Year_", 1:num_years)
+
+# Run simulation across all 20 years
+for (t in seq_along(sim_cols)) {
+  col_idx <- sim_cols[t]  # Current SType3 column (3, 4, ..., 22)
+  
+  # 1. Initialize a copy of the baseline Z_prov matrix for year t
+  Z_temp <- Z_prov
+  
+  # 2. Iterate through each rule/row in SType3
+  for (i in 1:nrow(SType3)) {
+    r_target <- SType3[i, 1]  # Row index in Export & Z_prov
+    c_target <- SType3[i, 2]  # Column index in Z_prov
+    pct_val  <- SType3[i, col_idx] # Percentage value for Year t
+    
+    # Check if percentages are written as 0-100 (e.g., 10%) or 0-1 (e.g., 0.10)
+    # If values in SType3 are whole percentages (e.g. 5, 10, 25), divide by 100:
+    pct_factor <- ifelse(pct_val > 1, pct_val / 100, pct_val)
+    
+    # 3. Calculate reallocation amount from Export
+    delta <- Export[r_target, 1] * pct_factor
+    
+    # 4. Add difference to the target cell in Z_prov
+    Z_temp[r_target, c_target] <- Z_temp[r_target, c_target] + delta
+  }
+  
+  # 5. Store the modified matrix for year t
+  Z_sim_list[[t]] <- Z_temp
+}
+
+# ==============================================================================
+# Accessing and Exporting Results
+# ==============================================================================
+
+# Access individual year matrices by index or name:
+# Z_year1  <- Z_sim_list[[1]]
+# Z_year20 <- Z_sim_list$Year_20
+
+# Optional: If you want 20 individual matrix variables in your environment:
+# (Creates Z_prov_1, Z_prov_2, ..., Z_prov_20)
+for (t in 1:num_years) {
+  assign(paste0("Z_prov_", t), Z_sim_list[[t]])
+}
+
+# Optional: Save all 20 simulation matrices into an RData / RDS file
+saveRDS(Z_sim_list, file = "Z_prov_simulation_20years.rds")
+
+
+# Matriks Identitas 66x66
+nA_prov <- jml_sektor
+matrixI <- diag(nA_prov)
+
+# Inisialisasi List untuk Menyimpan Matriks A dan Invers Leontief Tiap Tahun
+A_sim_list                <- vector("list", num_years)
+Leontief_Inverse_sim_list <- vector("list", num_years)
+
+names(A_sim_list)                <- paste0("Year_", 1:num_years)
+names(Leontief_Inverse_sim_list) <- paste0("Year_", 1:num_years)
+
+# Looping Perhitungan A_t dan (I - A_t)^(-1) untuk 20 Tahun Simulasi
+for (t in 1:num_years) {
+  
+  # A. Ambil matriks Z simulasi tahun ke-t
+  Z_t <- Z_sim_list[[t]]
+  
+  # B. Hitung Total Input Baru (X_t) = Total Input Antara Baru + Input Primer BAU
+  X_t <- X_prov
+  X_t[X_t == 0 | is.na(X_t) | is.nan(X_t)] <- 1e-12 # Mencegah pembagian nol
+  
+  # C. Hitung Matriks Koefisien Teknis A_t = Z_t / X_t
+  A_t <- sweep(Z_t, 2, X_t, FUN = "/")
+  A_t[is.nan(A_t) | is.infinite(A_t)] <- 0
+  
+  # D. Hitung (I - A_t) dan Invers Leontief: (I - A_t)^(-1)
+  I_minus_A_t <- matrixI - A_t
+  Leontief_Inverse_t <- solve(I_minus_A_t)
+  
+  # E. Simpan hasil ke dalam list
+  A_sim_list[[t]]                <- A_t
+  Leontief_Inverse_sim_list[[t]] <- Leontief_Inverse_t
+}
+
+# ==============================================================================
+# CARA MENGAKSES HASIL
+# ==============================================================================
+
+
+# Opsi 2: Membuat variabel individu Leontief_Inverse_1 s.d. Leontief_Inverse_20 di Environment
+for (t in 1:num_years) {
+  assign(paste0("A_prov_", t), A_sim_list[[t]])
+  assign(paste0("Leontief_Inverse_", t), Leontief_Inverse_sim_list[[t]])
+}
+
+Leontief_Inverse_full_list <- c(
+  list(Year_2025 = Leontief_Inverse), 
+  Leontief_Inverse_sim_list
+)
+names(Leontief_Inverse_full_list) <- paste0("Year_", 2025:2045)
+
+# Opsi 1: Mengakses berdasarkan nama atau indeks list
+L_tahun_1  <- Leontief_Inverse_full_list[["Year_2026"]]   # Tahun 2026
+
+
+# Loop untuk menghitung total PDRB hasil simulasi LAS 1+2
+final_results <- matrix(NA, nrow = nrow(fd_LAS), ncol = ncol(fd_LAS))
+
+for (i in 1:ncol(fd_LAS)) {
+  r_sums <- as.vector(Leontief_Inverse_full_list[[i]] %*% fd_LAS[, i])
+  step_res <- r_sums 
+  final_results[, i] <- r_sums * ntbProp
+  # Replace NaN before saving
+  final_results[is.nan(final_results)] <- 0
+  #final_results[, i] <- step_res
+}
+
+# buat tabel FD keseluruhan PDRB BAU
+colnames(final_results) <- colnames(LASArea)
+pdrb_LAS123 <- final_results
+
+pdrb_LAS123_total <- colSums(pdrb_LAS123)
+plot(pdrb_LAS123_total)
+
+# ------------------------------------------------------------------------------
+# REKAPITULASI TOTAL PDRB & VISUALISASI PROYEKSI (2025 - 2045)
+# ------------------------------------------------------------------------------
+
+# Plot perbandingan BAU dan LAS1+2
+years <- 2025:2045
+
+plot_df <- data.frame(
+  Year = years,
+  pdrb_LAS1 = pdrb_LAS1_total,
+  pdrb_LAS1B = pdrb_LAS1B_total,
+  pdrb_LAS12 = pdrb_LAS12_total,
+  pdrb_LAS123 = pdrb_LAS123_total,
+  pdrb_BAU = pdrb_BAU_total
+)
+
+ggplot(plot_df, aes(x = Year)) +
+  geom_line(aes(y = pdrb_BAU, color = "BAU Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_BAU, color = "BAU Scenario"), size = 2) +
+  geom_line(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), size = 2) +
+  geom_line(aes(y = pdrb_LAS1B, color = "LAS1B Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS1B, color = "LAS1B Scenario"), size = 2) +
+  geom_line(aes(y = pdrb_LAS12, color = "LAS12 Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS12, color = "LAS12 Scenario"), size = 2) +
+  geom_line(aes(y = pdrb_LAS123, color = "LAS123 Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS123, color = "LAS123 Scenario"), size = 2) +
+  scale_color_manual(
+    name = "Scenario",
+    values = c("BAU Scenario" = "#D95F02", "LAS1 Scenario" = "#1B9E77", "LAS1B Scenario" = "#00aef2", "LAS12 Scenario" = "#f6d1d1", "LAS123 Scenario" = "green")
+  ) +
+  scale_x_continuous(breaks = seq(2025, 2045, by = 5)) +
+  labs(
+    title = "PDRB Projection Comparison: BAU vs. LAS123 (2025–2045)",
+    x = "Year",
+    y = "Total PDRB"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  )
+
+write_xlsx(plot_df, "PDRB_SOLUSI.xlsx")
 
 ```
 
