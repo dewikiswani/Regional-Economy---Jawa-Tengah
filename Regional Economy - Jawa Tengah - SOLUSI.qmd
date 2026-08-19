@@ -13,13 +13,14 @@ Mengingat output sektor berbasis lahan dibatasi secara fisik oleh kapasitas tutu
 
 ## Data Input and Reading
 
-```{r}
+```{r, warning=FALSE}
 library(dplyr)
 library(tidyr)
 library(ggplot2)
 library(readxl)
 library(DT)
 library(patchwork)
+library(writexl)
 
 # Data Ekonomi Provinsi
 # Baca Matriks Transaksi Inter-Industri Provinsi (Z_prov) 
@@ -49,7 +50,7 @@ SType2 <- read_excel("SType2.xlsx",
                                col_names = TRUE)
 SType3 <- read_excel("SType3.xlsx", 
                                sheet = "SType3", 
-                               col_names = TRUE)
+                               col_names = FALSE)
 # Penyesuaian nama Input kolom yang dibutuhkan
 jml_sektor <- 66
 kolom_Sektor <- paste0("X", 1:66) # Membuat daftar nama kolom x1, x2, ..., x66 secara otomatis
@@ -64,7 +65,7 @@ baris_pjkProduk <- 68
 
 ##Pre-Processing
 
-```{r}
+```{r, warning=FALSE}
 # pembacaan matrix A
 matrixA <- io %>%
   slice(1:jml_sektor) %>%       # Mengambil baris 1 hingga 66
@@ -139,7 +140,7 @@ Constrained <- as.matrix(DeskripsiSektor[, 5])
 
 ## Linkages analysis
 
-```{r}
+```{r, warning=FALSE}
 # ==============================================================================
 # MENGHITUNG Backward dan Forward Linkage
 # ==============================================================================
@@ -214,7 +215,7 @@ p_linkage
 
 ##Multiplier Analysis
 
-```{r}
+```{r, warning=FALSE}
 # ==============================================================================
 # MENGHITUNG MULTIPLIERS (OUTPUT, INCOME, LABOUR, IMPORT)
 # TINGKAT SEKTORAL DAN RATA-RATA KSM (SEKTOR MAKRO)
@@ -442,7 +443,7 @@ gabungan_plot <- p_income / p_labour / p_import / p_output +
 
 ##Simulation BAU
 
-```{r}
+```{r, warning=FALSE}
 ## Ekstrak vector rerata pertumbuhan sektor unconstrained
 rate <- DeskripsiSektor$RateUnconstrained
 
@@ -516,7 +517,7 @@ plot(pdrb_BAU_total)
 
 ##Simulation LAS-1
 
-```{r}
+```{r, warning=FALSE}
 # Extract data luasan tutupan lahan dari hasil simulasi BAU
 LASArea <- as.matrix(LASLahan[, (ncol(LASLahan) - 20):ncol(LASLahan)])
 storage.mode(LASArea) <- "double"
@@ -589,11 +590,23 @@ ggplot(plot_df, aes(x = Year)) +
 ```
 
 ##Simulation LAS-1B
-```{r}
+```{r, warning=FALSE}
 # Loop untuk menghitung total area sektor dan Final Demand LAS dan SType1
 final_results <- matrix(NA, nrow = nrow(LDM_matrix), ncol = ncol(LASArea))
 SType1 <- as.matrix(SType1[, -26])
 storage.mode(SType1) <- "double"
+
+# menghitung land requirement coeff (LRC) dan land productivity coeff (LPC)
+Lahan2025 <- LASLahan$"2025"
+Lahan2025_diag <- diag(Lahan2025)
+LDM_matrix <- as.matrix(SType1[, -26])
+storage.mode(LDM_matrix) <- "double"
+LR_matrix   <- LDM_matrix %*% Lahan2025_diag
+LR <- rowSums(LR_matrix, na.rm = TRUE)
+LRC <- LR/fd
+LPC <- 1/LRC
+LPC <- as.numeric(LPC)
+
 
 for (i in 1:ncol(LASArea)) {
   r_sums <- as.vector(SType1 %*% LASArea[, i])
@@ -666,7 +679,7 @@ ggplot(plot_df, aes(x = Year)) +
 
 ##Simulation LAS-1+2
 
-```{r}
+```{r, warning=FALSE}
 # Loop untuk menghitung total area sektor dan Final Demand LAS dan SType1
 final_results <- matrix(NA, nrow = nrow(LDM_matrix), ncol = ncol(LASArea))
 SType2 <- as.matrix(SType2) + 1
@@ -740,12 +753,80 @@ ggplot(plot_df, aes(x = Year)) +
     legend.position = "bottom",
     plot.title = element_text(face = "bold", hjust = 0.5)
   )
-
+write_xlsx(plot_df, "PDRB_SOLUSI.xlsx")
 ```
 
 ##Simulation LAS-1+2+3
 
 ```{r}
+SType3 <- as.matrix(SType3)
+
+Export <- as.matrix(io$X305)
+Export <- Export[1:66, , drop = FALSE]
+Export[is.nan(Export)] <- 0
+Export[is.na(Export)] <- 0
+
+
+
+
+# ==============================================================================
+# Simulation Script: Modifying Z_prov from Export reallocations
+# ==============================================================================
+
+# Number of simulation years (Columns 3 to 22 = 20 years)
+sim_cols <- 3:22
+num_years <- length(sim_cols)
+
+# Create a list to store the 20 new Z_prov matrices
+Z_sim_list <- vector("list", num_years)
+names(Z_sim_list) <- paste0("Year_", 1:num_years)
+
+# Run simulation across all 20 years
+for (t in seq_along(sim_cols)) {
+  col_idx <- sim_cols[t]  # Current SType3 column (3, 4, ..., 22)
+  
+  # 1. Initialize a copy of the baseline Z_prov matrix for year t
+  Z_temp <- Z_prov
+  
+  # 2. Iterate through each rule/row in SType3
+  for (i in 1:nrow(SType3)) {
+    r_target <- SType3[i, 1]  # Row index in Export & Z_prov
+    c_target <- SType3[i, 2]  # Column index in Z_prov
+    pct_val  <- SType3[i, col_idx] # Percentage value for Year t
+    
+    # Check if percentages are written as 0-100 (e.g., 10%) or 0-1 (e.g., 0.10)
+    # If values in SType3 are whole percentages (e.g. 5, 10, 25), divide by 100:
+    pct_factor <- ifelse(pct_val > 1, pct_val / 100, pct_val)
+    
+    # 3. Calculate reallocation amount from Export
+    delta <- Export[r_target, 1] * pct_factor
+    
+    # 4. Add difference to the target cell in Z_prov
+    Z_temp[r_target, c_target] <- Z_temp[r_target, c_target] + delta
+  }
+  
+  # 5. Store the modified matrix for year t
+  Z_sim_list[[t]] <- Z_temp
+}
+
+# ==============================================================================
+# Accessing and Exporting Results
+# ==============================================================================
+
+# Access individual year matrices by index or name:
+# Z_year1  <- Z_sim_list[[1]]
+# Z_year20 <- Z_sim_list$Year_20
+
+# Optional: If you want 20 individual matrix variables in your environment:
+# (Creates Z_prov_1, Z_prov_2, ..., Z_prov_20)
+for (t in 1:num_years) {
+  assign(paste0("Z_prov_", t), Z_sim_list[[t]])
+}
+
+# Optional: Save all 20 simulation matrices into an RData / RDS file
+saveRDS(Z_sim_list, file = "Z_prov_simulation_20years.rds")
+
+
 
 ```
 
