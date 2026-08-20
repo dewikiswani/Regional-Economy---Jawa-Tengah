@@ -525,32 +525,6 @@ colnames(final_results) <- colnames(BAUArea)
 pdrb_BAU <- final_results
 
 pdrb_BAU_total <- colSums(pdrb_BAU)
-#plot(pdrb_BAU_total)
-years <- 2025:2045
-plot_df <- data.frame(
-  Year = years,
-  pdrb_BAU = pdrb_BAU_total
-)
-
-ggplot(plot_df, aes(x = Year)) +
-  geom_line(aes(y = pdrb_BAU, color = "BAU Scenario"), linewidth = 1.1) +
-  geom_point(aes(y = pdrb_BAU, color = "BAU Scenario"), size = 2) +
-  scale_color_manual(
-    name = "Scenario",
-    values = c("BAU Scenario" = "#D95F02")
-  ) +
-  scale_x_continuous(breaks = seq(2025, 2045, by = 5)) +
-  labs(
-    title = "PDRB Projection Comparison: BAU )",
-    x = "Year",
-    y = "Total PDRB"
-  ) +
-  theme_minimal(base_size = 13) +
-  theme(
-    legend.position = "bottom",
-    plot.title = element_text(face = "bold", hjust = 0.5)
-  )
-
 
 ```
 
@@ -595,37 +569,6 @@ colnames(final_results) <- colnames(LASArea)
 pdrb_LAS1 <- final_results
 
 pdrb_LAS1_total <- colSums(pdrb_LAS1)
-# plot(pdrb_LAS1_total)
-
-# Plot perbandingan BAU dan LAS1
-years <- 2025:2045
-
-plot_df <- data.frame(
-  Year = years,
-  pdrb_LAS1 = pdrb_LAS1_total,
-  pdrb_BAU = pdrb_BAU_total
-)
-
-ggplot(plot_df, aes(x = Year)) +
-  geom_line(aes(y = pdrb_BAU, color = "BAU Scenario"), linewidth = 1.1) +
-  geom_point(aes(y = pdrb_BAU, color = "BAU Scenario"), size = 2) +
-  geom_line(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), linewidth = 1.1) +
-  geom_point(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), size = 2) +
-  scale_color_manual(
-    name = "Scenario",
-    values = c("BAU Scenario" = "#D95F02", "LAS1 Scenario" = "#1B9E77")
-  ) +
-  scale_x_continuous(breaks = seq(2025, 2045, by = 5)) +
-  labs(
-    title = "PDRB Projection Comparison: BAU vs. LAS1 (2025–2045)",
-    x = "Year",
-    y = "Total PDRB"
-  ) +
-  theme_minimal(base_size = 13) +
-  theme(
-    legend.position = "bottom",
-    plot.title = element_text(face = "bold", hjust = 0.5)
-  )
 ```
 
 ##Simulation LAS-1B
@@ -679,41 +622,6 @@ colnames(final_results) <- colnames(LASArea)
 pdrb_LAS1B <- final_results
 
 pdrb_LAS1B_total <- colSums(pdrb_LAS1B)
-# plot(pdrb_LAS1B_total)
-
-# Plot perbandingan BAU dan LAS1
-years <- 2025:2045
-
-plot_df <- data.frame(
-  Year = years,
-  pdrb_LAS1 = pdrb_LAS1_total,
-  pdrb_LAS1B = pdrb_LAS1B_total,
-  pdrb_BAU = pdrb_BAU_total
-)
-
-ggplot(plot_df, aes(x = Year)) +
-  geom_line(aes(y = pdrb_BAU, color = "BAU Scenario"), linewidth = 1.1) +
-  geom_point(aes(y = pdrb_BAU, color = "BAU Scenario"), size = 2) +
-  geom_line(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), linewidth = 1.1) +
-  geom_point(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), size = 2) +
-  geom_line(aes(y = pdrb_LAS1B, color = "LAS1B Scenario"), linewidth = 1.1) +
-  geom_point(aes(y = pdrb_LAS1B, color = "LAS1B Scenario"), size = 2) +
-  scale_color_manual(
-    name = "Scenario",
-    values = c("BAU Scenario" = "#D95F02", "LAS1 Scenario" = "#1B9E77", "LAS1B Scenario" = "#00aef2")
-  ) +
-  scale_x_continuous(breaks = seq(2025, 2045, by = 5)) +
-  labs(
-    title = "PDRB Projection Comparison: BAU vs. LAS1 (2025–2045)",
-    x = "Year",
-    y = "Total PDRB"
-  ) +
-  theme_minimal(base_size = 13) +
-  theme(
-    legend.position = "bottom",
-    plot.title = element_text(face = "bold", hjust = 0.5)
-  )
-
 ```
 
 ##Simulation LAS-1+2
@@ -755,43 +663,6 @@ colnames(final_results) <- colnames(LASArea)
 pdrb_LAS12 <- final_results
 
 pdrb_LAS12_total <- colSums(pdrb_LAS12)
-# plot(pdrb_LAS12_total)
-
-# Plot perbandingan BAU dan LAS1+2
-years <- 2025:2045
-
-plot_df <- data.frame(
-  Year = years,
-  pdrb_LAS1 = pdrb_LAS1_total,
-  pdrb_LAS1B = pdrb_LAS1B_total,
-  pdrb_LAS12 = pdrb_LAS12_total,
-  pdrb_BAU = pdrb_BAU_total
-)
-
-ggplot(plot_df, aes(x = Year)) +
-  geom_line(aes(y = pdrb_BAU, color = "BAU Scenario"), linewidth = 1.1) +
-  geom_point(aes(y = pdrb_BAU, color = "BAU Scenario"), size = 2) +
-  geom_line(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), linewidth = 1.1) +
-  geom_point(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), size = 2) +
-  geom_line(aes(y = pdrb_LAS1B, color = "LAS1B Scenario"), linewidth = 1.1) +
-  geom_point(aes(y = pdrb_LAS1B, color = "LAS1B Scenario"), size = 2) +
-  geom_line(aes(y = pdrb_LAS12, color = "LAS12 Scenario"), linewidth = 1.1) +
-  geom_point(aes(y = pdrb_LAS12, color = "LAS12 Scenario"), size = 2) +
-  scale_color_manual(
-    name = "Scenario",
-    values = c("BAU Scenario" = "#D95F02", "LAS1 Scenario" = "#1B9E77", "LAS1B Scenario" = "#00aef2", "LAS12 Scenario" = "#f6d1d1")
-  ) +
-  scale_x_continuous(breaks = seq(2025, 2045, by = 5)) +
-  labs(
-    title = "PDRB Projection Comparison: BAU vs. LAS12 (2025–2045)",
-    x = "Year",
-    y = "Total PDRB"
-  ) +
-  theme_minimal(base_size = 13) +
-  theme(
-    legend.position = "bottom",
-    plot.title = element_text(face = "bold", hjust = 0.5)
-  )
 ```
 
 ##Simulation LAS-1+2+3
@@ -847,22 +718,6 @@ for (t in seq_along(sim_cols)) {
   Z_sim_list[[t]] <- Z_temp
 }
 
-# ==============================================================================
-# Accessing and Exporting Results
-# ==============================================================================
-
-# Access individual year matrices by index or name:
-# Z_year1  <- Z_sim_list[[1]]
-# Z_year20 <- Z_sim_list$Year_20
-
-# Optional: If you want 20 individual matrix variables in your environment:
-# (Creates Z_prov_1, Z_prov_2, ..., Z_prov_20)
-# for (t in 1:num_years) {
-#   assign(paste0("Z_prov_", t), Z_sim_list[[t]])
-# }
-
-# Optional: Save all 20 simulation matrices into an RData / RDS file
-# saveRDS(Z_sim_list, file = "Z_prov_simulation_20years.rds")
 
 
 # Matriks Identitas 66x66
@@ -982,7 +837,6 @@ hasil_simulasi <- ggplot(plot_df, aes(x = Year)) +
     plot.title = element_text(face = "bold", hjust = 0.5)
   )
 
-hasil_simulasi
 
 ```
 
@@ -1007,6 +861,8 @@ hasil_simulasi
 proporsiupahgaji <- sum(upah_gaji) / sum(pdrb_IO)
 final_income <- plot_df
 final_income[, -1] <- final_income[, -1] * proporsiupahgaji
+final_income <- final_income %>% 
+  rename_with(~ sub("^pdrb_", "income_", .x))
 write_xlsx(final_income, "Final_Income_SOLUSI_Bukecap.xlsx")
 knitr::kable(
   final_income,
@@ -1015,6 +871,30 @@ knitr::kable(
   col.names = c("Year","BAU", "LAS 1", "LAS 1B", "LAS 12", "LAS 123"),
   align = c("c", "r", "r", "r", "r", "r")
 )
+
+
+# Plot perbandingan BAU dan LAS1+2
+# Transformasi data ke format long
+df_long <- final_income %>% 
+  pivot_longer(
+    cols = starts_with("income_"), 
+    names_to = "Skenario", 
+    values_to = "Income"
+  )
+
+# Buat Grafik Line
+ggplot(df_long, aes(x = Year, y = Income, color = Skenario, group = Skenario)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2) +
+  scale_y_continuous(labels = scales::comma) + # Format angka desimal/ribuan
+  labs(
+    title = "Income Projection Comparison: BAU vs. LAS123 (2025–2045)",
+    x = "Tahun",
+    y = "Income (Rp)",
+    color = "Skenario"
+  ) +
+  theme_minimal()
+
 
 #Angka perbandingan besaran PDRB BAU ves LAS1+2+3 diakhir simulasi (%)
 # Ambil row terakhir dari hasil simulasi
@@ -1067,4 +947,47 @@ ggplot(df_2045, aes(x = Scenario, y = PDRB, fill = Scenario)) +
     plot.title = element_text(face = "bold", hjust = 0.5),
     panel.grid.major.x = element_blank()
   )
+```
+
+
+##Pendapatan Masyarakat Pesisir
+
+```{r}
+propLuasPesisir <- 0.14
+final_income_pesisir <- final_income
+final_income_pesisir[, -1] <- final_income_pesisir[, -1] * propLuasPesisir
+write_xlsx(final_income_pesisir, "Final_Income_pesisir_SOLUSI_Bukecap.xlsx")
+knitr::kable(
+  final_income_pesisir,
+  digits = 2,
+  format.args = list(big.mark = ","),
+  col.names = c("Year","BAU", "LAS 1", "LAS 1B", "LAS 12", "LAS 123"),
+  align = c("c", "r", "r", "r", "r", "r")
+)
+
+# Plot perbandingan BAU dan LAS1+2
+# Transformasi data ke format long
+df_long <- final_income_pesisir %>% 
+  pivot_longer(
+    cols = starts_with("income_"), 
+    names_to = "Skenario", 
+    values_to = "Income"
+  )
+
+# Buat Grafik Line
+ggplot(df_long, aes(x = Year, y = Income, color = Skenario, group = Skenario)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2) +
+  scale_y_continuous(labels = scales::comma) + # Format angka desimal/ribuan
+  labs(
+    title = "Income Projection Comparison: BAU vs. LAS123 (2025–2045)",
+    x = "Tahun",
+    y = "Income (Rp)",
+    color = "Skenario"
+  ) +
+  theme_minimal()
+
+
+
+
 ```
