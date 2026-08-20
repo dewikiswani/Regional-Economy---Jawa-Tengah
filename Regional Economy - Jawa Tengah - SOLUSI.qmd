@@ -21,6 +21,7 @@ library(readxl)
 library(DT)
 library(patchwork)
 library(writexl)
+library(plotly)
 
 # Data Ekonomi Provinsi
 # Baca Matriks Transaksi Inter-Industri Provinsi (Z_prov) 
@@ -523,7 +524,32 @@ colnames(final_results) <- colnames(BAUArea)
 pdrb_BAU <- final_results
 
 pdrb_BAU_total <- colSums(pdrb_BAU)
-plot(pdrb_BAU_total)
+#plot(pdrb_BAU_total)
+years <- 2025:2045
+plot_df <- data.frame(
+  Year = years,
+  pdrb_BAU = pdrb_BAU_total
+)
+
+ggplot(plot_df, aes(x = Year)) +
+  geom_line(aes(y = pdrb_BAU, color = "BAU Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_BAU, color = "BAU Scenario"), size = 2) +
+  scale_color_manual(
+    name = "Scenario",
+    values = c("BAU Scenario" = "#D95F02")
+  ) +
+  scale_x_continuous(breaks = seq(2025, 2045, by = 5)) +
+  labs(
+    title = "PDRB Projection Comparison: BAU )",
+    x = "Year",
+    y = "Total PDRB"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(face = "bold", hjust = 0.5)
+  )
+
 
 ```
 
@@ -568,7 +594,7 @@ colnames(final_results) <- colnames(LASArea)
 pdrb_LAS1 <- final_results
 
 pdrb_LAS1_total <- colSums(pdrb_LAS1)
-plot(pdrb_LAS1_total)
+# plot(pdrb_LAS1_total)
 
 # Plot perbandingan BAU dan LAS1
 years <- 2025:2045
@@ -652,7 +678,7 @@ colnames(final_results) <- colnames(LASArea)
 pdrb_LAS1B <- final_results
 
 pdrb_LAS1B_total <- colSums(pdrb_LAS1B)
-plot(pdrb_LAS1B_total)
+# plot(pdrb_LAS1B_total)
 
 # Plot perbandingan BAU dan LAS1
 years <- 2025:2045
@@ -728,7 +754,7 @@ colnames(final_results) <- colnames(LASArea)
 pdrb_LAS12 <- final_results
 
 pdrb_LAS12_total <- colSums(pdrb_LAS12)
-plot(pdrb_LAS12_total)
+# plot(pdrb_LAS12_total)
 
 # Plot perbandingan BAU dan LAS1+2
 years <- 2025:2045
@@ -765,15 +791,12 @@ ggplot(plot_df, aes(x = Year)) +
     legend.position = "bottom",
     plot.title = element_text(face = "bold", hjust = 0.5)
   )
-write_xlsx(plot_df, "PDRB_SOLUSI.xlsx")
 ```
 
 ##Simulation LAS-1+2+3
 
 ```{r}
 SType3 <- as.matrix(SType3)
-#SType3[, 3:22] <- SType3[, 3:22] + 1
-#SType3[, 3:22] <- SType3[, 3:22] * 100
 
 Export <- as.matrix(io$X305)
 Export <- Export[1:66, , drop = FALSE]
@@ -833,12 +856,12 @@ for (t in seq_along(sim_cols)) {
 
 # Optional: If you want 20 individual matrix variables in your environment:
 # (Creates Z_prov_1, Z_prov_2, ..., Z_prov_20)
-for (t in 1:num_years) {
-  assign(paste0("Z_prov_", t), Z_sim_list[[t]])
-}
+# for (t in 1:num_years) {
+#   assign(paste0("Z_prov_", t), Z_sim_list[[t]])
+# }
 
 # Optional: Save all 20 simulation matrices into an RData / RDS file
-saveRDS(Z_sim_list, file = "Z_prov_simulation_20years.rds")
+# saveRDS(Z_sim_list, file = "Z_prov_simulation_20years.rds")
 
 
 # Matriks Identitas 66x66
@@ -913,7 +936,7 @@ colnames(final_results) <- colnames(LASArea)
 pdrb_LAS123 <- final_results
 
 pdrb_LAS123_total <- colSums(pdrb_LAS123)
-plot(pdrb_LAS123_total)
+# plot(pdrb_LAS123_total)
 
 # ------------------------------------------------------------------------------
 # REKAPITULASI TOTAL PDRB & VISUALISASI PROYEKSI (2025 - 2045)
@@ -924,14 +947,14 @@ years <- 2025:2045
 
 plot_df <- data.frame(
   Year = years,
+  pdrb_BAU = pdrb_BAU_total,
   pdrb_LAS1 = pdrb_LAS1_total,
   pdrb_LAS1B = pdrb_LAS1B_total,
   pdrb_LAS12 = pdrb_LAS12_total,
-  pdrb_LAS123 = pdrb_LAS123_total,
-  pdrb_BAU = pdrb_BAU_total
+  pdrb_LAS123 = pdrb_LAS123_total
 )
 
-ggplot(plot_df, aes(x = Year)) +
+hasil_simulasi <- ggplot(plot_df, aes(x = Year)) +
   geom_line(aes(y = pdrb_BAU, color = "BAU Scenario"), linewidth = 1.1) +
   geom_point(aes(y = pdrb_BAU, color = "BAU Scenario"), size = 2) +
   geom_line(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), linewidth = 1.1) +
@@ -958,12 +981,89 @@ ggplot(plot_df, aes(x = Year)) +
     plot.title = element_text(face = "bold", hjust = 0.5)
   )
 
-write_xlsx(plot_df, "PDRB_SOLUSI.xlsx")
+hasil_simulasi
 
 ```
 
 ##Comparison BAU vs LAS
 
 ```{r}
+#Tabel PDRB BAU, LAS1, LAS1+2, LAS1+2+3 seluruh BUKECAP
+final_pdrb <- plot_df
+write_xlsx(final_pdrb, "Final_PDRB_SOLUSI_Bukecap.xlsx")
 
+knitr::kable(
+  final_pdrb,
+  digits = 2,
+  format.args = list(big.mark = ","),
+  col.names = c("Year","BAU", "LAS 1", "LAS 1B", "LAS 12", "LAS 123"),
+  align = c("c", "r", "r", "r", "r", "r")
+)
+#Line chart PDRB BAU, LAS1, LAS1+2, LAS1+2+3 seluruh BUKECAP
+hasil_simulasi
+
+#Tabel Income BAU, LAS1, LAS1+2, LAS1+2+3 seluruh BUKECAP
+proporsiupahgaji <- sum(upah_gaji) / sum(pdrb_IO)
+final_income <- plot_df
+final_income[, -1] <- final_income[, -1] * proporsiupahgaji
+write_xlsx(final_income, "Final_Income_SOLUSI_Bukecap.xlsx")
+knitr::kable(
+  final_income,
+  digits = 2,
+  format.args = list(big.mark = ","),
+  col.names = c("Year","BAU", "LAS 1", "LAS 1B", "LAS 12", "LAS 123"),
+  align = c("c", "r", "r", "r", "r", "r")
+)
+
+#Angka perbandingan besaran PDRB BAU ves LAS1+2+3 diakhir simulasi (%)
+# Ambil row terakhir dari hasil simulasi
+df_2045 <- plot_df %>%
+  slice_tail(n = 1) %>%
+  pivot_longer(
+    cols = -Year,
+    names_to = "Scenario",
+    values_to = "PDRB"
+  ) %>%
+  mutate(
+    Scenario = recode(
+      Scenario,
+      "pdrb_BAU"    = "BAU",
+      "pdrb_LAS1"   = "LAS 1",
+      "pdrb_LAS1B"  = "LAS 1B",
+      "pdrb_LAS12"  = "LAS 12",
+      "pdrb_LAS123" = "LAS 123"
+    ),
+    Scenario = factor(Scenario, levels = c("BAU", "LAS 1", "LAS 1B", "LAS 12", "LAS 123"))
+  )
+
+# Define custom Y-axis lower bound (or calculate dynamically)
+# Option A: Dynamic lower bound (e.g., 90% of the minimum value)
+y_min <- min(df_2045$PDRB) * 0.90
+y_max <- max(df_2045$PDRB) * 1
+
+# Barplot PDRB
+ggplot(df_2045, aes(x = Scenario, y = PDRB, fill = Scenario)) +
+  geom_col(width = 0.6, show.legend = FALSE) +
+  # Safely sets the visible Y-axis range
+  coord_cartesian(ylim = c(y_min, y_max)) +
+  scale_fill_manual(
+    values = c(
+      "BAU"     = "#D95F02",
+      "LAS 1"   = "#1B9E77",
+      "LAS 1B"  = "#00aef2",
+      "LAS 12"  = "#E78AC3",
+      "LAS 123" = "#2CA02C"
+    )
+  ) +
+  scale_y_continuous(labels = scales::comma) +
+  labs(
+    title = "Projected PDRB Comparison by Scenario (Year 2045)",
+    x = "Scenario",
+    y = "Total PDRB"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    panel.grid.major.x = element_blank()
+  )
 ```
