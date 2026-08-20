@@ -980,7 +980,7 @@ ggplot(df_long, aes(x = Year, y = Income, color = Skenario, group = Skenario)) +
   geom_point(size = 2) +
   scale_y_continuous(labels = scales::comma) + # Format angka desimal/ribuan
   labs(
-    title = "Income Projection Comparison: BAU vs. LAS123 (2025–2045)",
+    title = "Income (Masyarakat Pesisir) Projection Comparison: BAU vs. LAS123 (2025–2045)",
     x = "Tahun",
     y = "Income (Rp)",
     color = "Skenario"
