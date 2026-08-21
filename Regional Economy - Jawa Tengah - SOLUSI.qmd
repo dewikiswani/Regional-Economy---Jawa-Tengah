@@ -1229,30 +1229,7 @@ df_ITFL_constrained <- data.frame(
   check.names = FALSE
 )
 
-# Ambil nama kolom tahun ITFL
-kolom_itfl <- grep("^ITFL_", colnames(df_ITFL_constrained), value = TRUE)
-
-# Hitung rata-rata tiap kolom
-rerata_kolom <- colMeans(df_ITFL_constrained[, kolom_itfl], na.rm = TRUE)
-
-# Buat Data Frame hasil rata-rata per tahun
-df_rerata_ITFL <- data.frame(
-  Tahun = 2025:2045,
-  ITFL_LAS123 = as.numeric(rerata_kolom)
-)
-
-# 2. OPSI A: Penggabungan Menggunakan cbind()
-df_rerata_ITFL <- cbind(df_rerata_ITFL, ITFL_BAU = ITFL_BAU)
-
-df_long_ITFL <- df_rerata_ITFL %>%
-  pivot_longer(
-    cols = c("ITFL_LAS123", "ITFL_BAU"),
-    names_to = "Kategori",
-    values_to = "Nilai_ITFL"
-  )
-
 # 1. Hitung ITFL_BAU dengan perkalian tagging Constrained (Sektor non-lahan = 0)
-v_constrained <- as.numeric(DeskripsiSektor$Constrained)
 itfl_bau_constrained <- tabel_multiplier_sektoral$ITFL * v_constrained
 ITFL_BAU <- mean(itfl_bau_constrained, na.rm = TRUE) # Pembagi tetap 66 sektor
 
