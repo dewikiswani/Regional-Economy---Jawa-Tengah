@@ -74,9 +74,13 @@ kolom_Sektor <- paste0("X", 1:66) # Membuat daftar nama kolom x1, x2, ..., x66 s
 namaSektor <- as.vector(io[1:jml_sektor,"Nama.Sektor"])
 kolom_FD <- paste0("X309")
 kolom_TOutput <- "X700"
-baris_totInput <- 74
-baris_totInputPrimer <- 73
+
 baris_pjkProduk <- 68
+baris_impor <- 69  # Baris Impor / Input Luar Daerah
+baris_upah  <- 70  # Baris Kompensasi Tenaga Kerja / Gaji & Upah
+baris_surplus <- 71 # baris surplus usaha bruto
+baris_totInputPrimer <- 73
+baris_totInput <- 74
 
 ```
 
@@ -242,8 +246,8 @@ p_linkage
 # PERSIAPAN DATA KOEFISIEN INPUT PRIMER
 # ------------------------------------------------------------------------------
 # Catatan: Sesuaikan indeks baris pada file IO Anda jika berbeda.
-baris_upah  <- 70  # Baris Kompensasi Tenaga Kerja / Gaji & Upah
-baris_impor <- 69  # Baris Impor / Input Luar Daerah
+baris_upah  <- baris_upah  # Baris Kompensasi Tenaga Kerja / Gaji & Upah
+baris_impor <- baris_impor  # Baris Impor / Input Luar Daerah
 
 
 # A. Koefisien Pendapatan Langsung (h)
@@ -675,9 +679,6 @@ Export <- Export[1:66, , drop = FALSE]
 Export[is.nan(Export)] <- 0
 Export[is.na(Export)] <- 0
 
-
-
-
 # ==============================================================================
 # Simulation Script: Modifying Z_prov from Export reallocations
 # ==============================================================================
@@ -798,7 +799,7 @@ pdrb_LAS123_total <- colSums(pdrb_LAS123)
 # REKAPITULASI TOTAL PDRB & VISUALISASI PROYEKSI (2025 - 2045)
 # ------------------------------------------------------------------------------
 
-# Plot perbandingan BAU dan LAS1+2
+# Plot perbandingan 
 years <- 2025:2045
 
 plot_df <- data.frame(
@@ -829,7 +830,7 @@ hasil_simulasi <- ggplot(plot_df, aes(x = Year)) +
   labs(
     title = "PDRB Projection Comparison: BAU vs. LAS123 (2025–2045)",
     x = "Year",
-    y = "Total PDRB"
+    y = "Total PDRB (Juta Rupiah)"
   ) +
   theme_minimal(base_size = 13) +
   theme(
@@ -860,10 +861,11 @@ hasil_simulasi
 #Tabel Income BAU, LAS1, LAS1+2, LAS1+2+3 seluruh BUKECAP
 proporsiupahgaji <- sum(upah_gaji) / sum(pdrb_IO)
 final_income <- plot_df
-final_income[, -1] <- final_income[, -1] * proporsiupahgaji
 final_income <- final_income %>% 
   rename_with(~ sub("^pdrb_", "income_", .x))
+final_income[, -1] <- final_income[, -1] * proporsiupahgaji
 write_xlsx(final_income, "Final_Income_SOLUSI_Bukecap.xlsx")
+
 knitr::kable(
   final_income,
   digits = 2,
@@ -873,7 +875,7 @@ knitr::kable(
 )
 
 
-# Plot perbandingan BAU dan LAS1+2
+# Plot perbandingan 
 # Transformasi data ke format long
 df_long <- final_income %>% 
   pivot_longer(
@@ -890,7 +892,7 @@ ggplot(df_long, aes(x = Year, y = Income, color = Skenario, group = Skenario)) +
   labs(
     title = "Income Projection Comparison: BAU vs. LAS123 (2025–2045)",
     x = "Tahun",
-    y = "Income (Rp)",
+    y = "Income (Juta Rupiah)",
     color = "Skenario"
   ) +
   theme_minimal()
@@ -940,7 +942,7 @@ ggplot(df_2045, aes(x = Scenario, y = PDRB, fill = Scenario)) +
   labs(
     title = "Projected PDRB Comparison by Scenario (Year 2045)",
     x = "Scenario",
-    y = "Total PDRB"
+    y = "Total PDRB  (Juta Rupiah)"
   ) +
   theme_minimal(base_size = 13) +
   theme(
@@ -965,7 +967,7 @@ knitr::kable(
   align = c("c", "r", "r", "r", "r", "r")
 )
 
-# Plot perbandingan BAU dan LAS1+2
+# Plot perbandingan
 # Transformasi data ke format long
 df_long <- final_income_pesisir %>% 
   pivot_longer(
@@ -982,12 +984,145 @@ ggplot(df_long, aes(x = Year, y = Income, color = Skenario, group = Skenario)) +
   labs(
     title = "Income (Masyarakat Pesisir) Projection Comparison: BAU vs. LAS123 (2025–2045)",
     x = "Tahun",
-    y = "Income (Rp)",
+    y = "Income (Juta Rupiah)",
     color = "Skenario"
   ) +
   theme_minimal()
 
+```
 
 
+##Total Keuntungan Usaha
+
+```{r}
+# proporsi surplus usaha bruto
+surplus <- as.numeric(io[baris_surplus, kolom_Sektor])
+surplus[is.na(surplus)] <- 0
+propSurplus <- sum(surplus) / sum(pdrb_IO)
+
+final_surplus <- plot_df
+final_surplus <- final_surplus %>% 
+  rename_with(~ sub("^pdrb_", "surplus_", .x))
+final_surplus[, -1] <- final_surplus[, -1] * propSurplus
+
+write_xlsx(final_surplus, "Final_Surplus_SOLUSI_Bukecap.xlsx")
+knitr::kable(
+  final_surplus,
+  digits = 2,
+  format.args = list(big.mark = ","),
+  col.names = c("Year","BAU", "LAS 1", "LAS 1B", "LAS 12", "LAS 123"),
+  align = c("c", "r", "r", "r", "r", "r")
+)
+
+# Plot perbandingan 
+# Transformasi data ke format long
+df_long <- final_surplus %>% 
+  pivot_longer(
+    cols = starts_with("surplus_"), 
+    names_to = "Skenario", 
+    values_to = "Surplus"
+  )
+
+# Buat Grafik Line
+ggplot(df_long, aes(x = Year, y = Surplus, color = Skenario, group = Skenario)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2) +
+  scale_y_continuous(labels = scales::comma) + # Format angka desimal/ribuan
+  labs(
+    title = "Total Keuntungan Usaha Projection Comparison: BAU vs. LAS123 (2025–2045)",
+    x = "Tahun",
+    y = "Total Keuntungan Usaha (Juta Rupiah)",
+    color = "Skenario"
+  ) +
+  theme_minimal()
+
+```
+
+
+##Serapan Tenaga Kerja
+
+```{r}
+# KONSTANTA TK
+meanLabMultiplier <- mean(tabel_multiplier_sektoral$Labour_Effect)
+
+# Membentuk data frame selisih dengan Base R
+selisih_pdrb <- as.data.frame(apply(plot_df[, -1], 2, diff))
+
+# Menambahkan kolom Tahun (dimulai dari 2026 karena tahun 2025 tidak memiliki selisih)
+selisih_pdrb$Year <- plot_df$Year[-1]
+
+# Mengatur urutan kolom Year di awal
+selisih_pdrb <- selisih_pdrb[, c("Year", names(plot_df)[-1])]
+
+selisih_pdrb <- selisih_pdrb %>% 
+  rename_with(~ sub("^pdrb_", "TK_", .x))
+selisih_pdrb[, -1] <- selisih_pdrb[, -1] * meanLabMultiplier
+
+# ==============================================================================
+# SCRIPT PROYEKSI TENAGA KERJA (TK) BERDASARKAN SELISIH AKUMULATIF
+# ==============================================================================
+
+# 1. Tentukan Nilai Basis Awalan Tenaga Kerja Tahun 2025 (TK_2025)
+TK_2025 <- sum(DeskripsiSektor$TenagaKerja)  # Masukkan nilai numerik TK 2025 Anda di sini
+
+# 2. Buat data frame untuk baris Tahun 2025
+# Nilai TK_2025 akan diterapkan sama di seluruh kolom skenario
+baris_2025 <- as.data.frame(matrix(TK_2025, nrow = 1, ncol = ncol(selisih_pdrb) - 1))
+colnames(baris_2025) <- setdiff(names(selisih_pdrb), "Year")
+baris_2025$Year <- 2025
+
+# Mengatur posisi kolom Year agar di paling depan
+baris_2025 <- baris_2025[, c("Year", setdiff(names(baris_2025), "Year"))]
+
+# 3. Hitung Penjumlahan Akumulatif (Cumsum) dari selisih_pdrb
+# TK_t = TK_2025 + cumsum(selisih_2026 s.d. t)
+kolom_skenario <- setdiff(names(selisih_pdrb), "Year")
+
+# Hitung akumulasi selisih dan tambahkan dengan nilai basis TK_2025
+matriks_akumulasi <- apply(selisih_pdrb[, kolom_skenario], 2, cumsum) + TK_2025
+df_simulasi_tk <- as.data.frame(matriks_akumulasi)
+df_simulasi_tk$Year <- selisih_pdrb$Year
+
+# Susun kembali urutan kolom
+df_simulasi_tk <- df_simulasi_tk[, c("Year", kolom_skenario)]
+
+# 4. Gabungkan baris Tahun 2025 dengan baris Simulasi (2026-2045)
+# Samakan nama kolom baris_2025 dengan df_simulasi_tk
+colnames(baris_2025) <- colnames(df_simulasi_tk)
+
+# Gabungkan baris_2025 di bagian paling atas
+final_tk <- rbind(baris_2025, df_simulasi_tk)
+
+
+write_xlsx(final_tk, "Final_TK_SOLUSI_Bukecap.xlsx")
+knitr::kable(
+  final_tk,
+  digits = 2,
+  format.args = list(big.mark = ","),
+  col.names = c("Year","BAU", "LAS 1", "LAS 1B", "LAS 12", "LAS 123"),
+  align = c("c", "r", "r", "r", "r", "r")
+)
+
+# Plot perbandingan 
+# Transformasi data ke format long
+df_long <- final_tk %>% 
+  pivot_longer(
+    cols = starts_with("TK_"), 
+    names_to = "Skenario", 
+    values_to = "TK"
+  )
+
+# Buat Grafik Line
+ggplot(df_long, aes(x = Year, y = TK, color = Skenario, group = Skenario)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2) +
+  scale_y_continuous(labels = scales::comma) + # Format angka desimal/ribuan
+  labs(
+    title = "Serapan Tenaga Kerja Projection Comparison: BAU vs. LAS123 (2025–2045)",
+    x = "Tahun",
+    y = "Serapan TK (Orang)",
+    color = "Skenario"
+  ) +
+  theme_minimal()
 
 ```
