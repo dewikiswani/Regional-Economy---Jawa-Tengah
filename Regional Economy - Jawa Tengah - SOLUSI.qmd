@@ -81,6 +81,7 @@ baris_upah  <- 70  # Baris Kompensasi Tenaga Kerja / Gaji & Upah
 baris_surplus <- 71 # baris surplus usaha bruto
 baris_totInputPrimer <- 73
 baris_totInput <- 74
+propLuasPesisir <- 0.144
 
 ```
 
@@ -955,7 +956,7 @@ ggplot(df_2045, aes(x = Scenario, y = PDRB, fill = Scenario)) +
 ##Pendapatan Masyarakat Pesisir
 
 ```{r}
-propLuasPesisir <- 0.14
+propLuasPesisir <- propLuasPesisir
 final_income_pesisir <- final_income
 final_income_pesisir[, -1] <- final_income_pesisir[, -1] * propLuasPesisir
 write_xlsx(final_income_pesisir, "Final_Income_pesisir_SOLUSI_Bukecap.xlsx")
@@ -1124,5 +1125,153 @@ ggplot(df_long, aes(x = Year, y = TK, color = Skenario, group = Skenario)) +
     color = "Skenario"
   ) +
   theme_minimal()
+
+```
+
+
+
+##Keterkaitan SDA dengan sektor lain
+
+```{r}
+ITFL_BAU <- mean(tabel_multiplier_sektoral$ITFL[DeskripsiSektor$Constrained == 1], na.rm = TRUE)
+
+# ==============================================================================
+# SCRIPT LOOPING: MENGHITUNG TFL DAN ITFL DARI Leontief_Inverse_full_list
+# Periode: 21 Tahun (2025 - 2045)
+# ==============================================================================
+
+num_years_full <- length(Leontief_Inverse_full_list) # 21 tahun (2025:2045)
+years      <- 2025:2045
+
+# 1. Inisialisasi List Penyimpan
+TFL_list  <- vector("list", num_years_full)
+ITFL_list <- vector("list", num_years_full)
+
+names(TFL_list)  <- paste0("Year_", years)
+names(ITFL_list) <- paste0("Year_", years)
+
+# 2. Inisialisasi Matriks/Data Frame untuk Rekapitulasi (66 Sektor x 21 Tahun)
+TFL_matrix  <- matrix(0, nrow = jml_sektor, ncol = num_years_full)
+ITFL_matrix <- matrix(0, nrow = jml_sektor, ncol = num_years_full)
+
+colnames(TFL_matrix)  <- paste0("TFL_", years)
+colnames(ITFL_matrix) <- paste0("ITFL_", years)
+
+rownames(TFL_matrix)  <- namaSektor
+rownames(ITFL_matrix) <- namaSektor
+
+# ------------------------------------------------------------------------------
+# 3. LOOPING PERHITUNGAN TFL & ITFL
+# ------------------------------------------------------------------------------
+for (t in 1:num_years_full) {
+  
+  # A. Ambil matriks Leontief Inverse tahun ke-t
+  L_t <- Leontief_Inverse_full_list[[t]]
+  
+  # B. Hitung Total Forward Linkage (TFL) = Penjumlahan Baris pada Invers Leontief
+  tfl_t <- rowSums(L_t)
+  
+  # C. Hitung Indeks Total Forward Linkage (ITFL) = TFL / mean(TFL)
+  itfl_t <- tfl_t / mean(tfl_t)
+  
+  # D. Simpan ke dalam List
+  TFL_list[[t]]  <- tfl_t
+  ITFL_list[[t]] <- itfl_t
+  
+  # E. Simpan ke dalam Matriks Rekapitulasi
+  TFL_matrix[, t]  <- tfl_t
+  ITFL_matrix[, t] <- itfl_t
+}
+
+# ------------------------------------------------------------------------------
+# 4. KONVERSI MENJADI DATA FRAME RAPI
+# ------------------------------------------------------------------------------
+
+# Data Frame TFL (2025 - 2045)
+df_TFL_simulasi <- as.data.frame(TFL_matrix) %>%
+  mutate(
+    id_Sektor   = kolom_Sektor,
+    nama_Sektor = namaSektor,
+    .before     = 1
+  )
+
+# Data Frame ITFL (2025 - 2045)
+df_ITFL_simulasi <- as.data.frame(ITFL_matrix) %>%
+  mutate(
+    id_Sektor   = kolom_Sektor,
+    nama_Sektor = namaSektor,
+    .before     = 1
+  )
+
+# Ekstraksi Vektor Constrained dari DeskripsiSektor (66 sektor)
+v_constrained <- as.numeric(Constrained)
+v_constrained[is.na(v_constrained)] <- 0
+
+# Identifikasi Kolom Numerik ITFL (Tahun 2025 s.d. 2045)
+kolom_itfl <- grep("^ITFL_", colnames(df_ITFL_simulasi), value = TRUE)
+
+# 3. Perkalian Elemen Demi Elemen (Sweep / Element-wise Multiplication)
+# Sektor dengan Constrained = 1 akan mempertahankan nilai ITFL-nya
+# Sektor dengan Constrained = 0 akan bernilai 0
+matriks_itfl_constrained <- sweep(
+  as.matrix(df_ITFL_simulasi[, kolom_itfl]), 
+  1, 
+  v_constrained, 
+  FUN = "*"
+)
+
+# Pembentukan Data Frame Hasil
+df_ITFL_constrained <- data.frame(
+  id_Sektor   = df_ITFL_simulasi$id_Sektor,
+  nama_Sektor = df_ITFL_simulasi$nama_Sektor,
+  Constrained = v_constrained,
+  matriks_itfl_constrained,
+  check.names = FALSE
+)
+
+# Ambil nama kolom tahun ITFL
+kolom_itfl <- grep("^ITFL_", colnames(df_ITFL_constrained), value = TRUE)
+
+# Hitung rata-rata tiap kolom
+rerata_kolom <- colMeans(df_ITFL_constrained[, kolom_itfl], na.rm = TRUE)
+
+# Buat Data Frame hasil rata-rata per tahun
+df_rerata_ITFL <- data.frame(
+  Tahun = 2025:2045,
+  ITFL_LAS123 = as.numeric(rerata_kolom)
+)
+
+# 2. OPSI A: Penggabungan Menggunakan cbind()
+df_rerata_ITFL <- cbind(df_rerata_ITFL, ITFL_BAU = ITFL_BAU)
+
+df_long_ITFL <- df_rerata_ITFL %>%
+  pivot_longer(
+    cols = c("ITFL_LAS123", "ITFL_BAU"),
+    names_to = "Kategori",
+    values_to = "Nilai_ITFL"
+  )
+
+ggplot(df_long_ITFL, aes(x = Tahun, y = Nilai_ITFL, color = Kategori, linetype = Kategori)) +
+  geom_line(linewidth = 1.1) +
+  geom_point(size = 2) +
+  scale_x_continuous(breaks = seq(2025, 2045, by = 5)) +
+  scale_color_manual(
+    values = c("ITFL_LAS123" = "#1B9E77", "ITFL_BAU" = "#D95F02"),
+    labels = c("ITFL_LAS123" = "Simulasi LAS", "ITFL_BAU" = "Baseline BAU")
+  ) +
+  scale_linetype_manual(
+    values = c("ITFL_LAS123" = "solid", "ITFL_BAU" = "dashed"),
+    labels = c("ITFL_LAS123" = "Simulasi LAS", "ITFL_BAU" = "Baseline BAU")
+  ) +
+  labs(
+    title = "Proyeksi Rerata ITFL Sektor Lahan",
+    x = "Tahun",
+    y = "Nilai Rerata ITFL",
+    color = "Skenario",
+    linetype = "Skenario"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom", plot.title = element_text(face = "bold", hjust = 0.5))
+
 
 ```
