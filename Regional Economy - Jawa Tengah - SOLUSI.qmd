@@ -1251,27 +1251,47 @@ df_long_ITFL <- df_rerata_ITFL %>%
     values_to = "Nilai_ITFL"
   )
 
-ggplot(df_long_ITFL, aes(x = Tahun, y = Nilai_ITFL, color = Kategori, linetype = Kategori)) +
-  geom_line(linewidth = 1.1) +
-  geom_point(size = 2) +
+p_tren_ITFL <- ggplot(df_rerata_ITFL, aes(x = Tahun)) +
+  # 1. Garis & Titik untuk Tren Rerata ITFL Simulasi (Garis Lurus)
+  geom_line(aes(y = ITFL_LAS123, color = "Simulasi LAS"), linewidth = 1.1) +
+  geom_point(aes(y = ITFL_LAS123, color = "Simulasi LAS"), size = 2) +
+  
+  # 2. Garis & Titik untuk Baseline ITFL BAU (Diubah menjadi Garis Lurus / linetype = "solid")
+  geom_line(aes(y = ITFL_BAU, color = "Baseline BAU"), linewidth = 1.1, linetype = "solid") +
+  geom_point(aes(y = ITFL_BAU, color = "Baseline BAU"), size = 2) +
+  
+  # 3. Skala Sumbu
   scale_x_continuous(breaks = seq(2025, 2045, by = 5)) +
+  scale_y_continuous(labels = scales::number_format(accuracy = 0.01)) +
+  
+  # 4. Kustomisasi Warna Legenda
   scale_color_manual(
-    values = c("ITFL_LAS123" = "#1B9E77", "ITFL_BAU" = "#D95F02"),
-    labels = c("ITFL_LAS123" = "Simulasi LAS", "ITFL_BAU" = "Baseline BAU")
+    name = "Skenario",
+    values = c(
+      "Simulasi LAS" = "#1B9E77",  # Hijau
+      "Baseline BAU" = "#D95F02"   # Oranye
+    )
   ) +
-  scale_linetype_manual(
-    values = c("ITFL_LAS123" = "solid", "ITFL_BAU" = "dashed"),
-    labels = c("ITFL_LAS123" = "Simulasi LAS", "ITFL_BAU" = "Baseline BAU")
-  ) +
+  
+  # 5. Judul dan Label Sumbu
   labs(
     title = "Proyeksi Rerata ITFL Sektor Lahan",
     x = "Tahun",
-    y = "Nilai Rerata ITFL",
-    color = "Skenario",
-    linetype = "Skenario"
+    y = "Nilai Rerata ITFL"
   ) +
-  theme_minimal() +
-  theme(legend.position = "bottom", plot.title = element_text(face = "bold", hjust = 0.5))
+  
+  # 6. Tema Tampilan
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    legend.position = "bottom",
+    legend.title = element_text(face = "bold")
+  )
+
+# Tampilkan Plot
+print(p_tren_ITFL)
+write_xlsx(df_rerata_ITFL, "Final_Keterkaitan Sektor_SOLUSI_Bukecap.xlsx")
+
 
 
 ```
