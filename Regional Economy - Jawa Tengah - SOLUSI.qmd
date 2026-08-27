@@ -14,7 +14,32 @@ Mengingat output sektor berbasis lahan dibatasi secara fisik oleh kapasitas tutu
 
 ## Data Input and Reading
 
-```{r, warning=FALSE}
+Terdapat 7 file data input berformat Xlsx yang digunakan, yaitu:
+
+1. Tabel Input-Output BUKECAP tahun 2025
+2. Data deskripsi sektor yang berisi 
+    * Nama pendek sektor, 
+    * Nama singkat sektor, 
+    * Kategori KSM, 
+    * Label constrained sector, 
+    * Label unconstrained sector, 
+    * Rataan pertumbuhan PDRB ADHK (yoy) setiap sector unconstrained, 
+    * Jumlah tenaga kerja setiap sektor di tahun 2025
+3. Data Land Distribution Coefficient 
+4. Data luasan lahan (dalam hektare) berdasarkan tipe land cover historis dan proyeksi menggunakan asumsi skenario BAU
+5. Data luasan lahan (dalam hektare) berdasarkan tipe land cover historis dan proyeksi menggunakan asumsi skenario IMLaS
+6. Skenario tipe 1 menggunakan asumsi perubahan lahan yang disimbolkan menjadi LDC
+7. Skenario tipe 2 menggunakan beberapa asumsi
+    * perubahan produktivitas
+    * perubahan harga 
+    * manfaat tambahan 
+    * resiko (?)
+8. Skenario tipe 3 menggunakan asumsi perubahan komposisi input-output sektor (hilirisasi dan perubahan investasi)
+    
+    
+
+
+```{r, echo = FALSE, warning=FALSE, message = FALSE}
 library(dplyr)
 library(tidyr)
 library(ggplot2)
@@ -23,15 +48,6 @@ library(DT)
 library(patchwork)
 library(writexl)
 library(plotly)
-
-# Data Ekonomi Provinsi
-# Baca Matriks Transaksi Inter-Industri Provinsi (Z_prov) 
-# io <- read.csv("IO BUKECAP.csv", 
-#                header=T,
-#                sep=",",
-#                stringsAsFactors = F)
-
-# 1. Baca data PDRB ADHK dari Sheet 'ADHK'
 
 # Data Ekonomi Provinsi
 # Baca Matriks Transaksi Inter-Industri Provinsi (Z_prov) 
@@ -85,9 +101,9 @@ propLuasPesisir <- 0.144
 
 ```
 
-##Pre-Processing
+## Pre-Processing: Analisis Deskristif
 
-```{r, warning=FALSE}
+```{r, echo = FALSE, warning=FALSE}
 # pembacaan matrix A
 matrixA <- io %>%
   slice(1:jml_sektor) %>%       # Mengambil baris 1 hingga 66
@@ -143,7 +159,6 @@ pdrb_IO <- totInputPrimer
 #validasi (I - A)^-1 %*% FD %*% Proporsi NTB/total input *= pdrb di IO (NTB + pajak atas produk)
 validasi_PDRB_IO <- (kali_NTB/pdrb_IO*100)
 validasi_PDRB_IO[is.nan(validasi_PDRB_IO) | is.infinite(validasi_PDRB_IO)] <- 0
-mean(validasi_PDRB_IO)
 
 # menghitung land requirement coeff (LRC) dan land productivity coeff (LPC)
 Lahan2025 <- BAULahan$"2025"
@@ -162,7 +177,7 @@ Constrained <- as.matrix(DeskripsiSektor[, 5])
 
 ## Linkages analysis
 
-```{r, warning=FALSE}
+```{r, echo = FALSE, warning=FALSE}
 # ==============================================================================
 # MENGHITUNG Backward dan Forward Linkage
 # ==============================================================================
@@ -235,9 +250,9 @@ p_linkage <- ggplot(tabel_kuadran, aes(x = ITBL, y = ITFL, label = id_Sektor)) +
 p_linkage
 ```
 
-##Multiplier Analysis
+## Multiplier Analysis
 
-```{r, warning=FALSE}
+```{r, echo = FALSE, warning=FALSE}
 # ==============================================================================
 # MENGHITUNG MULTIPLIERS (OUTPUT, INCOME, LABOUR, IMPORT)
 # TINGKAT SEKTORAL DAN RATA-RATA KSM (SEKTOR MAKRO)
@@ -455,14 +470,18 @@ gabungan_plot <- p_income / p_labour / p_import / p_output +
     )
   )
 
-# Tampilkan di RStudio Plots Pane
-  print(gabungan_plot)
 
 ```
 
-##Simulation BAU
+## Simulation BAU
+### Definisi
+Skenario ini merupakan proyeksi kondisi ekonomi dan lingkungan yang berjalan tanpa adanya intervensi kebijakan baru atau perubahan signifikan dalam tata kelola sumber daya hingga tahun 2045.
 
-```{r, warning=FALSE}
+### Asumsi
+Proyeksi perubahan penggunaan lahan dimodelkan dengan mengacu pada data historis tahun 2020 sampai tahun 2025. Pertumbuhan ekonomi sektor non-LaS diproyeksikan dengan rerata pertumbuhan ekonomi 10 tahun terakhir
+
+
+```{r, echo = FALSE, warning=FALSE}
 ## Ekstrak vector rerata pertumbuhan sektor unconstrained
 rate <- DeskripsiSektor$RateUnconstrained
 
@@ -533,9 +552,11 @@ pdrb_BAU_total <- colSums(pdrb_BAU)
 
 ```
 
-##Simulation LAS-1
 
-```{r, warning=FALSE}
+
+
+```{r, echo = FALSE, warning=FALSE}
+##Simulation LAS-1
 # Extract data luasan tutupan lahan dari hasil simulasi BAU
 LASArea <- as.matrix(LASLahan[, (ncol(LASLahan) - 20):ncol(LASLahan)])
 storage.mode(LASArea) <- "double"
@@ -576,9 +597,14 @@ pdrb_LAS1 <- final_results
 pdrb_LAS1_total <- colSums(pdrb_LAS1)
 ```
 
-##Simulation LAS-1B
+## Simulation LAS-1
+### Definisi
+Skenario ini menerapkan prinsip integrasi pengelolaan ruang darat laut yang tertuang pada Strategi-1 melalui Alokasi dan pengelolaan ruang darat-laut dan DAS berkelanjutan.
 
-```{r, warning=FALSE}
+### Asumsi
+Proyeksi perubahan penggunaan lahan dan pemanfaatan ruang perairan memasukkan unsur perlindungan ekosistem penting, kesesuaian lahan, akses lahan dengan skema perhutanan sosial dan tata ruang. Proyeksi pertumbuhan ekonomi sektor lahan dihitung berdasarkan Koefisien Kebutuhan Lahan 2026-2045 dan tabel Input-Output
+
+```{r, echo = FALSE, warning=FALSE}
 # Loop untuk menghitung total area sektor dan Final Demand LAS dan SType1
 final_results <- matrix(NA, nrow = nrow(LDM_matrix), ncol = ncol(LASArea))
 SType1 <- as.matrix(SType1[, -26])
@@ -628,10 +654,16 @@ pdrb_LAS1B <- final_results
 
 pdrb_LAS1B_total <- colSums(pdrb_LAS1B)
 ```
+ 
+## Simulation LAS-1+2
+### Definisi
+Pengembangan dari IMLaS-1 dengan memasukkan peningkatan produktivitas komoditas strategi seperti padi, tanaman pangan, kopi, karet,  kelapa, peternakan, dan perikanan budidaya pada Strategi-2 yang dicapai melalui praktik pertanian dan perikanan yang baik.
 
-##Simulation LAS-1+2
+### Asumsi
+Seluruh asumsi pada IMLaS-1, dipadukan dengan peningkatan produktivitas melalui penerapan praktik budidaya yang baik, dan perbaikan harga melalui rantai pasok serta pemasaran yang diperkuat. Pada akhir periode simulasi, diasumsikan lebih dari 85% area sektor komoditas strategis sudah menerapkan praktik budidaya dan rantai nilai yang baik
 
-```{r, warning=FALSE}
+
+```{r, echo = FALSE, warning=FALSE}
 # Loop untuk menghitung total area sektor dan Final Demand LAS dan SType1
 final_results <- matrix(NA, nrow = nrow(LDM_matrix), ncol = ncol(LASArea))
 SType2 <- as.matrix(SType2) + 1
@@ -670,9 +702,14 @@ pdrb_LAS12 <- final_results
 pdrb_LAS12_total <- colSums(pdrb_LAS12)
 ```
 
-##Simulation LAS-1+2+3
+## Simulation LAS-1+2+3
+### Definisi
+Pengembangan dari IMLaS-2 dengan menambahkan penguatan rantai nilai komoditas strategis pada Strategi-2 melalui hilirisasi produk dan peningkatan investasi.
 
-```{r}
+### Asumsi
+Seluruh asumsi pada IMLaS2, dipadukan dengan upaya mengurangi ekspor bahan mentah, yang kemudian dialihkan pada proses hilirisasi melalui pengembangan industri hilir dan dan Investasi strategis secara bertahap
+
+```{r, echo = FALSE, warning=FALSE}
 SType3 <- as.matrix(SType3)
 
 Export <- as.matrix(io$X305)
@@ -842,9 +879,34 @@ hasil_simulasi <- ggplot(plot_df, aes(x = Year)) +
 
 ```
 
-##Comparison BAU vs LAS
+## PDRB
+Pendapatan domestik regional bruto merupakan salah satu indikator kinerja
+perekonomian suatu wilayah. Proyeksi terhadap PDRB digunakan untuk
+mengetahui gambaran mengenai arah pertumbuhan ekonomi di suatu
+wilayah yang didasarkan pada dua skenario utama yakni BaU serta skenario
+intervensi IMLaS. Skenario BaU didasarkan pada asumsi bahwa kondisi ekonomi
+dan lingkungan yang berjalan tanpa adanya intervensi kebijakan baru atau
+perubahan signifikan dalam tata kelola sumber daya hingga tahun 2045.
+Skenario IMLaS-3 didasarkan pada asumsi bahwa terjadi perubahan
+penggunaan ruang darat laut melalui kebijakan pengelolaan yang terintegrasi
+serta usaha peningkatan produktivitas komoditas strategis dibarengi dengan
+hilirisasi dan peningkatan investasi. Komoditas strategis yang dilakukan
+intervensi pada IMLaS diantaranya adalah padi, tanaman pangan, kopi, karet, 
+kelapa, peternakan, dan perikanan yang tertuang pada Strategi-2.  
 
-```{r}
+Hasil proyeksi menunjukkan bahwa pada akhir periode simulasi tahun 2045,
+penerapan skenario IMLaS mampu menghasilkan PDRB sebanyak 570,58 triliun
+rupiah. Angka tersebut 5,2% lebih besar ketimbang hasil proyeksi PDRB
+menggunakan skenario BaU yakni 542,2 triliun rupiah. Penerapan intervensi
+skenario IMLaS menunjukkan bahwa rerata laju pertumbuhan ekonomi
+keseluruhan sektor diproyeksikan sebesar 4,02% (lebih besar ketimbang
+skenario BAU sebesar 3,76%). Hal ini didorong oleh pertumbuhan sektor SDA
+dengan perubahan rerata laju pertumbuhan dari 2% (Skenario BaU) menjadi
+4% (Skenario IMLaS). 
+
+
+
+```{r, echo = FALSE, warning=FALSE}
 #Tabel PDRB BAU, LAS1, LAS1+2, LAS1+2+3 seluruh BUKECAP
 final_pdrb <- plot_df
 write_xlsx(final_pdrb, "Final_PDRB_SOLUSI_Bukecap.xlsx")
@@ -858,46 +920,6 @@ knitr::kable(
 )
 #Line chart PDRB BAU, LAS1, LAS1+2, LAS1+2+3 seluruh BUKECAP
 hasil_simulasi
-
-#Tabel Income BAU, LAS1, LAS1+2, LAS1+2+3 seluruh BUKECAP
-proporsiupahgaji <- sum(upah_gaji) / sum(pdrb_IO)
-final_income <- plot_df
-final_income <- final_income %>% 
-  rename_with(~ sub("^pdrb_", "income_", .x))
-final_income[, -1] <- final_income[, -1] * proporsiupahgaji
-write_xlsx(final_income, "Final_Income_SOLUSI_Bukecap.xlsx")
-
-knitr::kable(
-  final_income,
-  digits = 2,
-  format.args = list(big.mark = ","),
-  col.names = c("Year","BAU", "LAS 1", "LAS 1B", "LAS 12", "LAS 123"),
-  align = c("c", "r", "r", "r", "r", "r")
-)
-
-
-# Plot perbandingan 
-# Transformasi data ke format long
-df_long <- final_income %>% 
-  pivot_longer(
-    cols = starts_with("income_"), 
-    names_to = "Skenario", 
-    values_to = "Income"
-  )
-
-# Buat Grafik Line
-ggplot(df_long, aes(x = Year, y = Income, color = Skenario, group = Skenario)) +
-  geom_line(linewidth = 1) +
-  geom_point(size = 2) +
-  scale_y_continuous(labels = scales::comma) + # Format angka desimal/ribuan
-  labs(
-    title = "Income Projection Comparison: BAU vs. LAS123 (2025–2045)",
-    x = "Tahun",
-    y = "Income (Juta Rupiah)",
-    color = "Skenario"
-  ) +
-  theme_minimal()
-
 
 #Angka perbandingan besaran PDRB BAU ves LAS1+2+3 diakhir simulasi (%)
 # Ambil row terakhir dari hasil simulasi
@@ -950,12 +972,103 @@ ggplot(df_2045, aes(x = Scenario, y = PDRB, fill = Scenario)) +
     plot.title = element_text(face = "bold", hjust = 0.5),
     panel.grid.major.x = element_blank()
   )
+
+
+
+```
+## Pendapatan Per Kapita
+Proyeksi pendapatan masyarakat di wilayah BUKECAP didapat berdasarkan
+pendekatan koefisien kompensasi tenaga kerja (proporsi upah dan gaji
+terhadap PDRB) yang dihubungkan secara langsung dengan total PDRB
+proyeksi tahunan. Selanjutnya, proyeksi pendapatan tersebut dibagi dengan
+total penduduk BUKECAP untuk memperoleh proyeksi pendapatan per kapita
+masyarakat. 
+
+Sejalan dengan pertumbuhan PDRB regional, penerapan berbagai tingkat
+skenario IMLaS terbukti mampu memberikan dorongan signifikan terhadap
+peningkatan pendapatan per kapita di wilayah studi dibandingkan kondisi
+Business As Usual (BAU).  
+
+Intervensi skenario IMLaS-3 diproyeksikan mampu meningkatkan rerata laju
+pertumbuhan pendapatan per kapita BUKECAP menjadi 3,2%. Penerapan
+skenario penuh IMLaS-3 ditahun terakhir simulasi menghasilkan selisih
+kenaikan pendapatan masyarakat keseluruhan BUKECAP sebesar Rp 39,49 juta
+per kapita, lebih tinggi dibandingkan skenario BAU pada tahun 2045
+(peningkatan sekitar 5,23%).  
+
+```{r, echo = FALSE, warning=FALSE}
+
+#Tabel Income BAU, LAS1, LAS1+2, LAS1+2+3 seluruh BUKECAP
+proporsiupahgaji <- sum(upah_gaji) / sum(pdrb_IO)
+final_income <- plot_df
+final_income <- final_income %>% 
+  rename_with(~ sub("^pdrb_", "income_", .x))
+final_income[, -1] <- final_income[, -1] * proporsiupahgaji
+write_xlsx(final_income, "Final_Income_SOLUSI_Bukecap.xlsx")
+
+knitr::kable(
+  final_income,
+  digits = 2,
+  format.args = list(big.mark = ","),
+  col.names = c("Year","BAU", "LAS 1", "LAS 1B", "LAS 12", "LAS 123"),
+  align = c("c", "r", "r", "r", "r", "r")
+)
+
+
+# Plot perbandingan 
+# Transformasi data ke format long
+df_long <- final_income %>% 
+  pivot_longer(
+    cols = starts_with("income_"), 
+    names_to = "Skenario", 
+    values_to = "Income"
+  )
+
+# Buat Grafik Line
+ggplot(df_long, aes(x = Year, y = Income, color = Skenario, group = Skenario)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2) +
+  scale_y_continuous(labels = scales::comma) + # Format angka desimal/ribuan
+  labs(
+    title = "Income Projection Comparison: BAU vs. LAS123 (2025–2045)",
+    x = "Tahun",
+    y = "Income (Juta Rupiah)",
+    color = "Skenario"
+  ) +
+  theme_minimal()
+
 ```
 
 
-##Pendapatan Masyarakat Pesisir
 
-```{r}
+## Pendapatan Masyarakat Pesisir Per Kapita
+Proyeksi pendapatan per kapita masyarakat pesisir dihitung dengan membagi
+proyeksi pendapatan masyarakat pesisir BUKECAP dengan proyeksi populasi
+masyarakat pesisir. Kedua proyeksi tersebut diestimasi berdasarkan proporsi
+luas wilayah pesisir terhadap total wilayah BUKECAP, yang dikaitkan dengan
+proyeksi pendapatan masyarakat dan populasi BUKECAP secara keseluruhan.
+Pendekatan ini digunakan untuk menggambarkan sejauh mana dampak
+intervensi terhadap perekonomian regional tercermin pada tingkat
+kesejahteraan masyarakat pesisir. 
+
+Tanpa adanya intervensi pengelolaan berbasis lahan dan pasar yang inklusif,
+pendapatan per kapita masyarakat pesisir diproyeksikan tumbuh secara
+alamiah hingga mencapai Rp 44,4 juta pada tahun 2045. Pelaksanaan skenario
+intervensi secara konsisten menunjukkan deviasi positif di atas kurva BAU.
+Skenario IMLaS-1 serta IMLaS-2 secara bertahap menaikkan taraf pendapatan
+kawasan pesisir.  
+
+Puncak potensi dicapai pada Skenario IMLaS-3 yang merupakan kombinasi
+optimal tata guna lahan, produktivitas, dan hilirisasi rantai nilai berbasis
+lahan/pesisir), di mana pendapatan per kapita masyarakat pesisir
+diproyeksikan meningkat hingga Rp 46,7 juta pada tahun 2045. Penerapan
+skenario penuh IMLaS-3 menghasilkan tambahan pendapatan bagi
+masyarakat pesisir sebesar Rp2,3 juta lebih tinggi dibandingkan skenario BaU
+pada tahun 2045. Angka ini mencerminkan peningkatan sebesar 5,18% pada
+pendapatan per kapita masyarakat pesisir jika dibandingkan dengan kondisi
+tanpa intervensi. 
+
+```{r, echo = FALSE, warning=FALSE}
 propLuasPesisir <- propLuasPesisir
 final_income_pesisir <- final_income
 final_income_pesisir[, -1] <- final_income_pesisir[, -1] * propLuasPesisir
@@ -993,9 +1106,31 @@ ggplot(df_long, aes(x = Year, y = Income, color = Skenario, group = Skenario)) +
 ```
 
 
-##Total Keuntungan Usaha
+## Total Keuntungan Usaha
+Proyeksi total keuntungan usaha regional dihitung berdasarkan proporsi
+Surplus Usaha Bruto (Gross Operating Surplus) terhadap total PDRB, yang
+kemudian diselaraskan dengan proyeksi PDRB. Indikator ini mencerminkan porsi
+nilai tambah ekonomi yang diperoleh para pelaku usaha dan pemilik modal
+atas investasi serta aktivitas bisnis di wilayah BUKECAP. 
 
-```{r}
+Tanpa adanya intervensi kebijakan perekonomian regional, keuntungan usaha
+diproyeksikan tumbuh secara alamiah hingga mencapai Rp291,38 triliun pada
+tahun 2045. Sedangkan dengan adanya penerapan skenario IMLAS
+menghasilkan capaian tertinggi nilai proyeksi keuntungan usaha mencapai
+Rp306,63 triliun pada akhir periode simulasi tahun 2045. Menerapkan skenario
+IMLaS-3 berpotensi memberikan tambahan keuntungan usaha sebesar Rp15,25
+triliun lebih tinggi dibandingkan skenario BAU pada tahun 2045. 
+
+Pendapatan keuntungan usaha menggambarkan manfaat ekonomi yang
+diterima oleh pelaku usaha sebagai hasil dari perkembangan aktivitas ekonomi
+di suatu wilayah. Grafik di bawah menunjukkan bahwa di akhir periode tahun
+2045, potensi keuntungan usaha regional dapat ditingkatkan menjadi 5,2%
+lebih besar dengan menerapkan skenario IMLaS-3 dibanding skenario BaU.
+Melalui penerapan intervensi IMLaS-3, keuntungan usaha regional di BUKECAP
+secara rata-rata diproyeksikan 4,5% lebih tinggi dibandingkan jika wilayah
+berjalan dengan skenario BAU. 
+
+```{r, echo = FALSE, warning=FALSE}
 # proporsi surplus usaha bruto
 surplus <- as.numeric(io[baris_surplus, kolom_Sektor])
 surplus[is.na(surplus)] <- 0
@@ -1040,9 +1175,17 @@ ggplot(df_long, aes(x = Year, y = Surplus, color = Skenario, group = Skenario)) 
 ```
 
 
-##Serapan Tenaga Kerja
+## Serapan Tenaga Kerja
+Proyeksi serapan tenaga kerja mengasumsikan penambahan tenaga kerja
+baru tahunan sebagai hasil akumulasi selisih pertumbuhan PDRB yang
+diselaraskan dengan nilai Labor Multiplier. Intervensi melalui skenario IMLaS
+diharapkan mampu menyerap lebih banyak tenaga kerja. Hasil proyeksi
+menunjukkan bahwa Intervensi skenario IMLaS-3 di akhir tahun 2045
+diproyeksikan mampu meningkatkan total tenaga kerja sebesar 6.016.163
+orang. Angka tersebut 5,2% lebih besar bila dibandingkan dengan hasil simulasi
+penerapan skenario BaU (Bussiness as Usual) yakni 5.719.673 orang. 
 
-```{r}
+```{r, echo = FALSE, warning=FALSE}
 # KONSTANTA TK
 meanLabMultiplier <- mean(tabel_multiplier_sektoral$Labour_Effect)
 
@@ -1130,9 +1273,35 @@ ggplot(df_long, aes(x = Year, y = TK, color = Skenario, group = Skenario)) +
 
 
 
-##Keterkaitan SDA dengan sektor lain
+## Keterkaitan SDA dengan sektor lain
+Indeks Total Forward Linkage (ITFL) atau Indeks Derajat Kepekaan mengukur
+sejauh mana sektor berbasis lahan berfungsi sebagai penyedia input (supplier)
+bagi pertumbuhan sektor-sektor perekonomian lainnya. Semakin tinggi nilai
+ITFL, semakin kuat dorongan yang diberikan oleh sektor lahan terhadap rantai
+pasok hilir (forward linkage) dan sektor olahan di dalam struktur ekonomi
+regional.  
 
-```{r}
+Pada kondisi BAU, rerata nilai ITFL sektor lahan berada pada tingkat yang sangat
+datar dan stagnan di kisaran 0,18 sepanjang periode 2025 hingga 2045. Hal ini
+mengindikasikan bahwa tanpa adanya intervensi struktur perekonomian,
+keterkaitan sektor lahan terhadap sektor hilir tidak mengalami penguatan dan
+cenderung bertindak sekadar sebagai penyedia bahan baku mentah tanpa
+integrasi rantai nilai yang memadai. Penerapan skenario IMLAS-3
+memperlihatkan peningkatan rerata ITFL yang signifikan dan konsisten
+membentuk pola naik. Dimulai dari titik awal yang sama pada tahun 2025–2027
+(0,18), nilai ITFL meningkat secara bertahap menembus 0,185 pada kisaran
+tahun 2030, melampaui 0,19 pada periode 2040–2041, hingga mencapai
+puncaknya mendekati 0,20 pada tahun 2045. 
+
+Kenaikan bertahap pada kurva simulasi LAS membuktikan bahwa intervensi
+kebijakan (penguatan akses lahan, peningkatan produktivitas, serta
+optimalisasi rantai nilai dan hilirisasi) berhasil mengubah peran sektor lahan dari sekadar sektor primer mentah menjadi mesin penggerak industri olahan
+lokal. Peningkatan nilai ITFL ini mengonfirmasi bahwa setiap pertumbuhan
+output pada sektor lahan di bawah skenario IMLAS-3 akan terdistribusi secara
+lebih luas sebagai input bagi sektor manufaktur, industri pengolahan,
+perdagangan, dan jasa terkait. 
+
+```{r, echo = FALSE, warning=FALSE}
 ITFL_BAU <- mean(tabel_multiplier_sektoral$ITFL[DeskripsiSektor$Constrained == 1], na.rm = TRUE)
 
 # ==============================================================================
