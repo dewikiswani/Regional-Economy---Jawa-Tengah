@@ -64,7 +64,7 @@ DeskripsiSektor <- read_excel("DeskripsiSektor.xlsx",
 
 # LDC menghubungkan 66 sektor dengan jenis tutupan lahan (land cover)
 LDM <- read_excel("LDM.xlsx",
-                     sheet = "LDM", col_names = FALSE)
+                     sheet = "LDM", col_names = TRUE)
 
 # Baca Data Luas Lahan per 5 Tahun (BAU_Lahan.xlsx)
 BAULahan <- read_excel("BAU_Lahan.xlsx",
@@ -83,9 +83,11 @@ SType2 <- read_excel("SType2.xlsx",
                                col_names = TRUE)
 SType3 <- read_excel("SType3.xlsx",
                                sheet = "SType3",
-                               col_names = FALSE)
+                               col_names = TRUE)
 
 populasiPenduduk <- read_excel("populasi penduduk.xlsx", col_names = TRUE)
+
+populasiPendudukPesisir <- read_excel("populasi penduduk pesisir.xlsx", col_names = TRUE)
  
 # Penyesuaian nama Input kolom yang dibutuhkan
 jml_sektor <- 66
@@ -553,12 +555,6 @@ pdrb_BAU <- final_results
 
 pdrb_BAU_total <- colSums(pdrb_BAU)
 
-```
-
-
-
-
-```{r, echo = FALSE, warning=FALSE}
 ##Simulation LAS-1
 # Extract data luasan tutupan lahan dari hasil simulasi BAU
 LASArea <- as.matrix(LASLahan[, (ncol(LASLahan) - 20):ncol(LASLahan)])
@@ -1244,7 +1240,7 @@ knitr::kable(
 #   ) +
 #   theme_minimal()
 
-# B. Import Data 
+# Import Data 
 df_populasi <- populasiPenduduk
 
 df_income_kapita <- final_income %>%
@@ -1258,7 +1254,7 @@ df_income_kapita <- final_income %>%
   )
 
 # ==============================================================================
-# 2. RESHAPE DATA KE FORMAT LONG
+# RESHAPE DATA KE FORMAT LONG
 # ==============================================================================
 
 df_long_kapita <- df_income_kapita %>%
@@ -1397,27 +1393,137 @@ knitr::kable(
   align = c("c", "r", "r", "r", "r", "r")
 )
 
-# Plot perbandingan
-# Transformasi data ke format long
-df_long <- final_income_pesisir %>% 
-  pivot_longer(
-    cols = starts_with("income_"), 
-    names_to = "Skenario", 
-    values_to = "Income"
+# Import Data, pastikan ada kolom "Year" dan "Populasi" (dalam juta orang)
+df_populasi <- populasiPendudukPesisir
+
+df_income_kapita <- final_income_pesisir %>%
+  left_join(df_populasi, by = "Year") %>%
+  mutate(
+    # Dibagi 1e6 agar nilainya menjadi satuan Juta Rupiah per Kapita (misal: 21.23)
+    incomekapita_BAU    = (income_BAU / Populasi) / 1e6,
+    incomekapita_LAS1B  = (income_LAS1B / Populasi) / 1e6,
+    incomekapita_LAS12  = (income_LAS12 / Populasi) / 1e6,
+    incomekapita_LAS123 = (income_LAS123 / Populasi) / 1e6
   )
 
-# Buat Grafik Line
-ggplot(df_long, aes(x = Year, y = Income, color = Skenario, group = Skenario)) +
-  geom_line(linewidth = 1) +
-  geom_point(size = 2) +
-  scale_y_continuous(labels = scales::comma) + # Format angka desimal/ribuan
-  labs(
-    title = "Income (Masyarakat Pesisir) Projection Comparison: BAU vs. LAS123 (2025–2045)",
-    x = "Tahun",
-    y = "Income (Juta Rupiah)",
-    color = "Skenario"
+# ==============================================================================
+# RESHAPE DATA KE FORMAT LONG
+# ==============================================================================
+
+df_long_kapita <- df_income_kapita %>%
+  select(Year, starts_with("incomekapita_")) %>%
+  pivot_longer(
+    cols = starts_with("incomekapita_"),
+    names_to = "Skenario",
+    values_to = "Income_Kapita"
+  ) %>%
+  mutate(
+    Skenario_Label = case_when(
+      Skenario == "incomekapita_BAU"    ~ "BAU",
+      Skenario == "incomekapita_LAS1B"  ~ "IMLaS-1B",
+      Skenario == "incomekapita_LAS12"  ~ "IMLaS-2",
+      Skenario == "incomekapita_LAS123" ~ "IMLaS-3"
+    ),
+    Skenario_Label = factor(Skenario_Label, levels = c("BAU", "IMLaS-1B", "IMLaS-2", "IMLaS-3"))
+  )
+
+# ==============================================================================
+# 3. EKSTRAKSI EKSTREMITAS NILAI (2025 & 2045) UNTUK CALLOUT EXCEL
+# ==============================================================================
+
+val_2025     <- df_income_kapita$incomekapita_BAU[df_income_kapita$Year == 2025]
+val_bau_2045 <- df_income_kapita$incomekapita_BAU[df_income_kapita$Year == 2045]
+val_las_2045 <- df_income_kapita$incomekapita_LAS123[df_income_kapita$Year == 2045]
+
+lbl_2025     <- number(val_2025, accuracy = 0.01)
+lbl_bau_2045 <- number(val_bau_2045, accuracy = 0.01)
+lbl_las_2045 <- number(val_las_2045, accuracy = 0.01)
+
+# ==============================================================================
+# 4. VISUALISASI GRAFIK PROYEKSI PENDAPATAN PER KAPITA
+# ==============================================================================
+
+p_income_kapita_pesisir <- ggplot(df_long_kapita, aes(x = Year, y = Income_Kapita, color = Skenario_Label, group = Skenario_Label)) +
+  # --- Garis & Titik ---
+  geom_line(linewidth = 1.1) +
+  geom_point(size = 2.5) +
+  
+  # --- Garis Penunjuk / Callout Pointer Lines ---
+  annotate("segment", x = 2025.2, xend = 2026.8, y = val_2025, yend = val_2025 + 2.5, 
+           color = "gray40", linewidth = 0.6) +
+  
+  annotate("segment", x = 2044.8, xend = 2042.8, y = val_las_2045, yend = val_las_2045 + 2.2, 
+           color = "gray40", linewidth = 0.6) +
+  
+  annotate("segment", x = 2044.8, xend = 2043.2, y = val_bau_2045, yend = val_bau_2045 - 2.5, 
+           color = "gray40", linewidth = 0.6) +
+  
+  # --- Kotak Label Nilai (Callout Box) ---
+  annotate("label", x = 2027.2, y = val_2025 + 2.7, label = lbl_2025, 
+           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
+  
+  annotate("label", x = 2042.0, y = val_las_2045 + 2.4, label = lbl_las_2045, 
+           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
+  
+  annotate("label", x = 2042.5, y = val_bau_2045 - 2.7, label = lbl_bau_2045, 
+           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
+
+  # --- Skala dan Warna ---
+  scale_color_manual(
+    name = NULL,
+    values = c(
+      "BAU"     = "#4178BE",  # Biru Excel
+      "IMLaS-1B" = "#C0392B",  # Merah Excel
+      "IMLaS-2" = "#7DCE13",  # Hijau Excel
+      "IMLaS-3" = "#8E44AD"   # Ungu Excel
+    )
   ) +
-  theme_minimal()
+  scale_x_continuous(breaks = seq(2025, 2045, by = 5), limits = c(2024.5, 2045.5)) +
+  scale_y_continuous(labels = number_format(accuracy = 0.01), limits = c(18, 45)) +
+  
+  # --- Judul dan Label Sumbu ---
+  labs(
+    title = "Proyeksi Pendapatan per Kapita Masyarakat Pesisir 2026–2045",
+    x = NULL,
+    y = "Juta rupiah"
+  ) +
+  
+  # --- Tema Tampilan Excel Style ---
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 15, color = "gray20"),
+    axis.title.y = element_text(color = "gray30", size = 12),
+    axis.text = element_text(color = "gray20"),
+    legend.position = "bottom",
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank()
+  )
+
+# Tampilkan Grafik
+print(p_income_kapita_pesisir)
+
+# Plot perbandingan
+# Transformasi data ke format long
+# df_long <- final_income_pesisir %>% 
+#   pivot_longer(
+#     cols = starts_with("income_"), 
+#     names_to = "Skenario", 
+#     values_to = "Income"
+#   )
+# 
+# # Buat Grafik Line
+# ggplot(df_long, aes(x = Year, y = Income, color = Skenario, group = Skenario)) +
+#   geom_line(linewidth = 1) +
+#   geom_point(size = 2) +
+#   scale_y_continuous(labels = scales::comma) + # Format angka desimal/ribuan
+#   labs(
+#     title = "Income (Masyarakat Pesisir) Projection Comparison: BAU vs. LAS123 (2025–2045)",
+#     x = "Tahun",
+#     y = "Income (Juta Rupiah)",
+#     color = "Skenario"
+#   ) +
+#   theme_minimal()
+
 
 ```
 
