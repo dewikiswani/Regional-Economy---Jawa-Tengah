@@ -48,6 +48,7 @@ library(DT)
 library(patchwork)
 library(writexl)
 library(plotly)
+library(scales) # Untuk format koma angka
 
 # Data Ekonomi Provinsi
 # Baca Matriks Transaksi Inter-Industri Provinsi (Z_prov) 
@@ -83,6 +84,8 @@ SType2 <- read_excel("SType2.xlsx",
 SType3 <- read_excel("SType3.xlsx",
                                sheet = "SType3",
                                col_names = FALSE)
+
+populasiPenduduk <- read_excel("populasi penduduk.xlsx", col_names = TRUE)
  
 # Penyesuaian nama Input kolom yang dibutuhkan
 jml_sektor <- 66
@@ -919,7 +922,7 @@ knitr::kable(
   align = c("c", "r", "r", "r", "r", "r")
 )
 #Line chart PDRB BAU, LAS1, LAS1+2, LAS1+2+3 seluruh BUKECAP
-hasil_simulasi
+#hasil_simulasi
 
 #Angka perbandingan besaran PDRB BAU ves LAS1+2+3 diakhir simulasi (%)
 # Ambil row terakhir dari hasil simulasi
@@ -973,6 +976,210 @@ ggplot(df_2045, aes(x = Scenario, y = PDRB, fill = Scenario)) +
     panel.grid.major.x = element_blank()
   )
 
+# ==============================================================================
+# PEMISAHAN PDRB BERDASARKAN SEKTOR (LAS vs LAINNYA vs KESELURUHAN)
+# ==============================================================================
+
+# Ambil vektor penanda sektor constrained (1 = LAS, 0 = Sektor Lainnya)
+v_las <- as.numeric(DeskripsiSektor$Constrained)
+v_las[is.na(v_las)] <- 0
+v_lainnya <- 1 - v_las
+
+# Fungsi untuk memisahkan PDRB matriks (66 sektor x 21 tahun) menjadi total per kelompok
+hitung_pdrb_kelompok <- function(matriks_pdrb) {
+  pdrb_las     <- colSums(matriks_pdrb[v_las == 1, , drop = FALSE])
+  pdrb_lainnya <- colSums(matriks_pdrb[v_lainnya == 1, , drop = FALSE])
+  pdrb_total   <- colSums(matriks_pdrb)
+  
+  return(list(LAS = pdrb_las, Lainnya = pdrb_lainnya, Total = pdrb_total))
+}
+
+# Hitung PDRB kelompok untuk setiap skenario (Misal: BAU, LAS1, LAS12, LAS123)
+# Catatan: Pastikan matriks PDRB (66 baris x 21 kolom) untuk tiap skenario sudah ada
+res_BAU    <- hitung_pdrb_kelompok(pdrb_BAU)    # Asumsi pdrb_BAU adalah matriks 66x21
+res_LAS1   <- hitung_pdrb_kelompok(pdrb_LAS1B)   # Asumsi pdrb_LAS1 adalah matriks 66x21
+res_LAS12  <- hitung_pdrb_kelompok(pdrb_LAS12)  # Asumsi pdrb_LAS12 adalah matriks 66x21
+res_LAS123 <- hitung_pdrb_kelompok(pdrb_LAS123) # Asumsi pdrb_LAS123 adalah matriks 66x21
+
+# ==============================================================================
+# PERHITUNGAN RERATA PERTUMBUHAN TAHUNAN (CAGR 2025 - 2045)
+# ==============================================================================
+
+# Rumus Compound Annual Growth Rate (CAGR): (PDRB_2045 / PDRB_2025)^(1/20) - 1
+calc_cagr <- function(vec_pdrb) {
+  val_2025 <- vec_pdrb["2025"] # Atau vec_pdrb[1]
+  val_2045 <- vec_pdrb["2045"] # Atau vec_pdrb[21]
+  cagr <- ((val_2045 / val_2025)^(1/20) - 1) * 100
+  return(cagr)
+}
+
+# Matriks Rerata Pertumbuhan Ekonomi (3 Kelompok Sektor x 4 Skenario)
+cagr_data <- data.frame(
+  Kelompok = factor(c("Sektor LAS", "Sektor lainnya", "Keseluruhan"), 
+                    levels = c("Sektor LAS", "Sektor lainnya", "Keseluruhan")),
+  BAU     = c(calc_cagr(res_BAU$LAS),    calc_cagr(res_BAU$Lainnya),calc_cagr(res_BAU$Total)),
+  `IMLaS-1B` = c(calc_cagr(res_LAS1$LAS),   calc_cagr(res_LAS1$Lainnya), calc_cagr(res_LAS1$Total)), 
+  `IMLaS-2` = c(calc_cagr(res_LAS12$LAS),  calc_cagr(res_LAS12$Lainnya),  calc_cagr(res_LAS12$Total)),
+  `IMLaS-3` = c(calc_cagr(res_LAS123$LAS), calc_cagr(res_LAS123$Lainnya), calc_cagr(res_LAS123$Total))
+)
+
+# Reshape ke format Long untuk ggplot
+df_bar_chart <- cagr_data %>%
+  pivot_longer(
+    cols = c("BAU", "IMLaS.1B", "IMLaS.2", "IMLaS.3"),
+    names_to = "Skenario",
+    values_to = "Growth"
+  ) %>%
+  mutate(
+    Skenario = case_when(
+      Skenario == "BAU" ~ "BAU",
+      Skenario == "IMLaS.1B" ~ "IMLaS-1B",
+      Skenario == "IMLaS.2" ~ "IMLaS-2",
+      Skenario == "IMLaS.3" ~ "IMLaS-3"
+    ),
+    Skenario = factor(Skenario, levels = c("BAU", "IMLaS-1B", "IMLaS-2", "IMLaS-3"))
+  )
+
+# ==============================================================================
+# 3. VISUALISASI BAR CHART 
+# ==============================================================================
+
+p_bar_growth <- ggplot(df_bar_chart, aes(x = Kelompok, y = Growth, fill = Skenario)) +
+  # --- Bar Grouped ---
+  geom_bar(stat = "identity", position = position_dodge(width = 0.8), width = 0.7) +
+  
+  # --- Teks Nilai Angka Persentase di Atas Bar ---
+  geom_text(
+    aes(label = sprintf("%.1f%%", Growth)),
+    position = position_dodge(width = 0.8),
+    vjust = -0.5,
+    fontface = "bold",
+    size = 4,
+    color = "black"
+  ) +
+  
+  # --- Skala & Kustomisasi Warna ---
+  scale_y_continuous(
+    labels = function(x) paste0(format(x, nsmall = 1), "%"),
+    limits = c(1.5, 4.5), # Rentang sumbu Y mirip contoh gambar
+    oob = rescale_none
+  ) +
+  scale_fill_manual(
+    values = c(
+      "BAU"     = "#4178BE",  # Biru
+      "IMLaS-1B" = "#C0392B",  # Merah Marun
+      "IMLaS-2" = "#7DCE13",  # Hijau Muda
+      "IMLaS-3" = "#8E44AD"   # Ungu
+    )
+  ) +
+  
+  # --- Judul dan Label ---
+  labs(
+    title = "Rerata Pertumbuhan Sektor Ekonomi 2026–2045",
+    x = NULL,
+    y = NULL,
+    fill = NULL
+  ) +
+  
+  # --- Tema Tampilan Excel Style ---
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 15, color = "gray20"),
+    axis.text.x = element_text(face = "bold", size = 12, color = "gray20"),
+    axis.text.y = element_text(color = "gray30"),
+    legend.position = "bottom",
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank() # Menghilangkan grid vertikal
+  )
+
+# Tampilkan Chart
+print(p_bar_growth)
+
+# ==============================================================================
+# 3. VISUALISASI LINE CHART 
+# ==============================================================================
+
+# 1. Ambil nilai spesifik untuk label callout
+val_2025    <- plot_df$pdrb_BAU[plot_df$Year == 2025]
+val_bau_2045 <- plot_df$pdrb_BAU[plot_df$Year == 2045]
+val_las_2045 <- plot_df$pdrb_LAS123[plot_df$Year == 2045]
+
+# 2. Format angka dengan pemisah koma (misal: 259,275,105)
+lbl_2025    <- comma(val_2025)
+lbl_bau_2045 <- comma(val_bau_2045)
+lbl_las_2045 <- comma(val_las_2045)
+
+# 3. Plot Grafik
+hasil_simulasi_label <- ggplot(plot_df, aes(x = Year)) +
+  # --- Line & Point untuk Setiap Skenario ---
+  geom_line(aes(y = pdrb_BAU, color = "BAU Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_BAU, color = "BAU Scenario"), size = 2.5) +
+  
+  geom_line(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS1, color = "LAS1 Scenario"), size = 2.5) +
+  
+  geom_line(aes(y = pdrb_LAS1B, color = "LAS1B Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS1B, color = "LAS1B Scenario"), size = 2.5) +
+  
+  geom_line(aes(y = pdrb_LAS12, color = "LAS12 Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS12, color = "LAS12 Scenario"), size = 2.5) +
+  
+  geom_line(aes(y = pdrb_LAS123, color = "LAS123 Scenario"), linewidth = 1.1) +
+  geom_point(aes(y = pdrb_LAS123, color = "LAS123 Scenario"), size = 2.5) +
+  
+  # --- Garis Penunjuk / Callout Pointer Lines (Gaya Excel) ---
+  # Garis penunjuk nilai awal 2025
+  annotate("segment", x = 2025.2, xend = 2026.8, y = val_2025, yend = val_2025 + 40e6, color = "gray40", linewidth = 0.6) +
+  
+  # Garis penunjuk nilai akhir LAS123 2045
+  annotate("segment", x = 2044.8, xend = 2042.8, y = val_las_2045, yend = val_las_2045 + 30e6, color = "gray40", linewidth = 0.6) +
+  
+  # Garis penunjuk nilai akhir BAU 2045
+  annotate("segment", x = 2044.8, xend = 2043.2, y = val_bau_2045, yend = val_bau_2045 - 35e6, color = "gray40", linewidth = 0.6) +
+  
+  # --- Kotak Label Nilai (Excel Style Box) ---
+  # Label Awal 2025
+  annotate("label", x = 2027.2, y = val_2025 + 42e6, label = lbl_2025, 
+           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
+  
+  # Label Akhir LAS123 2045
+  annotate("label", x = 2042.0, y = val_las_2045 + 32e6, label = lbl_las_2045, 
+           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
+  
+  # Label Akhir BAU 2045
+  annotate("label", x = 2042.5, y = val_bau_2045 - 37e6, label = lbl_bau_2045, 
+           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
+
+  # --- Skala dan Warna ---
+  scale_color_manual(
+    name = "Scenario",
+    values = c(
+      "BAU Scenario"    = "#D95F02", 
+      "LAS1 Scenario"   = "#1B9E77", 
+      "LAS1B Scenario"  = "#00AEF2", 
+      "LAS12 Scenario"  = "#E7298A", 
+      "LAS123 Scenario" = "#7570B3"
+    )
+  ) +
+  scale_x_continuous(breaks = seq(2025, 2045, by = 5), limits = c(2024.5, 2045.5)) +
+  scale_y_continuous(labels = comma_format()) + # Menghilangkan format notasi ilmiah 3e+08
+  
+  # --- Judul dan Format Tema ---
+  labs(
+    title = "Proyeksi PDRB 2025–2045",
+    x = "Year",
+    y = "Total PDRB (Juta Rupiah)"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 15),
+    panel.grid.minor = element_blank(),
+    axis.text = element_text(color = "black")
+  )
+
+# Tampilkan Grafik
+print(hasil_simulasi_label)
 
 
 ```
@@ -1015,27 +1222,136 @@ knitr::kable(
 )
 
 
-# Plot perbandingan 
-# Transformasi data ke format long
-df_long <- final_income %>% 
-  pivot_longer(
-    cols = starts_with("income_"), 
-    names_to = "Skenario", 
-    values_to = "Income"
+# # Plot perbandingan 
+# # Transformasi data ke format long
+# df_long <- final_income %>% 
+#   pivot_longer(
+#     cols = starts_with("income_"), 
+#     names_to = "Skenario", 
+#     values_to = "Income"
+#   )
+# 
+# # Buat Grafik Line
+# plot_income <- ggplot(df_long, aes(x = Year, y = Income, color = Skenario, group = Skenario)) +
+#   geom_line(linewidth = 1) +
+#   geom_point(size = 2) +
+#   scale_y_continuous(labels = scales::comma) + # Format angka desimal/ribuan
+#   labs(
+#     title = "Income Projection Comparison: BAU vs. LAS123 (2025–2045)",
+#     x = "Tahun",
+#     y = "Income (Juta Rupiah)",
+#     color = "Skenario"
+#   ) +
+#   theme_minimal()
+
+# B. Import Data 
+df_populasi <- populasiPenduduk
+
+df_income_kapita <- final_income %>%
+  left_join(df_populasi, by = "Year") %>%
+  mutate(
+    # Dibagi 1e6 agar nilainya menjadi satuan Juta Rupiah per Kapita (misal: 21.23)
+    incomekapita_BAU    = (income_BAU / Populasi) / 1e6,
+    incomekapita_LAS1B  = (income_LAS1B / Populasi) / 1e6,
+    incomekapita_LAS12  = (income_LAS12 / Populasi) / 1e6,
+    incomekapita_LAS123 = (income_LAS123 / Populasi) / 1e6
   )
 
-# Buat Grafik Line
-ggplot(df_long, aes(x = Year, y = Income, color = Skenario, group = Skenario)) +
-  geom_line(linewidth = 1) +
-  geom_point(size = 2) +
-  scale_y_continuous(labels = scales::comma) + # Format angka desimal/ribuan
-  labs(
-    title = "Income Projection Comparison: BAU vs. LAS123 (2025–2045)",
-    x = "Tahun",
-    y = "Income (Juta Rupiah)",
-    color = "Skenario"
+# ==============================================================================
+# 2. RESHAPE DATA KE FORMAT LONG
+# ==============================================================================
+
+df_long_kapita <- df_income_kapita %>%
+  select(Year, starts_with("incomekapita_")) %>%
+  pivot_longer(
+    cols = starts_with("incomekapita_"),
+    names_to = "Skenario",
+    values_to = "Income_Kapita"
+  ) %>%
+  mutate(
+    Skenario_Label = case_when(
+      Skenario == "incomekapita_BAU"    ~ "BAU",
+      Skenario == "incomekapita_LAS1B"  ~ "IMLaS-1B",
+      Skenario == "incomekapita_LAS12"  ~ "IMLaS-2",
+      Skenario == "incomekapita_LAS123" ~ "IMLaS-3"
+    ),
+    Skenario_Label = factor(Skenario_Label, levels = c("BAU", "IMLaS-1B", "IMLaS-2", "IMLaS-3"))
+  )
+
+# ==============================================================================
+# 3. EKSTRAKSI EKSTREMITAS NILAI (2025 & 2045) UNTUK CALLOUT EXCEL
+# ==============================================================================
+
+val_2025     <- df_income_kapita$incomekapita_BAU[df_income_kapita$Year == 2025]
+val_bau_2045 <- df_income_kapita$incomekapita_BAU[df_income_kapita$Year == 2045]
+val_las_2045 <- df_income_kapita$incomekapita_LAS123[df_income_kapita$Year == 2045]
+
+lbl_2025     <- number(val_2025, accuracy = 0.01)
+lbl_bau_2045 <- number(val_bau_2045, accuracy = 0.01)
+lbl_las_2045 <- number(val_las_2045, accuracy = 0.01)
+
+# ==============================================================================
+# 4. VISUALISASI GRAFIK PROYEKSI PENDAPATAN PER KAPITA
+# ==============================================================================
+
+p_income_kapita <- ggplot(df_long_kapita, aes(x = Year, y = Income_Kapita, color = Skenario_Label, group = Skenario_Label)) +
+  # --- Garis & Titik ---
+  geom_line(linewidth = 1.1) +
+  geom_point(size = 2.5) +
+  
+  # --- Garis Penunjuk / Callout Pointer Lines ---
+  annotate("segment", x = 2025.2, xend = 2026.8, y = val_2025, yend = val_2025 + 2.5, 
+           color = "gray40", linewidth = 0.6) +
+  
+  annotate("segment", x = 2044.8, xend = 2042.8, y = val_las_2045, yend = val_las_2045 + 2.2, 
+           color = "gray40", linewidth = 0.6) +
+  
+  annotate("segment", x = 2044.8, xend = 2043.2, y = val_bau_2045, yend = val_bau_2045 - 2.5, 
+           color = "gray40", linewidth = 0.6) +
+  
+  # --- Kotak Label Nilai (Callout Box) ---
+  annotate("label", x = 2027.2, y = val_2025 + 2.7, label = lbl_2025, 
+           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
+  
+  annotate("label", x = 2042.0, y = val_las_2045 + 2.4, label = lbl_las_2045, 
+           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
+  
+  annotate("label", x = 2042.5, y = val_bau_2045 - 2.7, label = lbl_bau_2045, 
+           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
+
+  # --- Skala dan Warna ---
+  scale_color_manual(
+    name = NULL,
+    values = c(
+      "BAU"     = "#4178BE",  # Biru Excel
+      "IMLaS-1B" = "#C0392B",  # Merah Excel
+      "IMLaS-2" = "#7DCE13",  # Hijau Excel
+      "IMLaS-3" = "#8E44AD"   # Ungu Excel
+    )
   ) +
-  theme_minimal()
+  scale_x_continuous(breaks = seq(2025, 2045, by = 5), limits = c(2024.5, 2045.5)) +
+  scale_y_continuous(labels = number_format(accuracy = 0.01), limits = c(18, 45)) +
+  
+  # --- Judul dan Label Sumbu ---
+  labs(
+    title = "Proyeksi Pendapatan per Kapita 2026–2045",
+    x = NULL,
+    y = "Juta rupiah"
+  ) +
+  
+  # --- Tema Tampilan Excel Style ---
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 15, color = "gray20"),
+    axis.title.y = element_text(color = "gray30", size = 12),
+    axis.text = element_text(color = "gray20"),
+    legend.position = "bottom",
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank()
+  )
+
+# Tampilkan Grafik
+print(p_income_kapita)
 
 ```
 
@@ -1159,18 +1475,97 @@ df_long <- final_surplus %>%
     values_to = "Surplus"
   )
 
-# Buat Grafik Line
-ggplot(df_long, aes(x = Year, y = Surplus, color = Skenario, group = Skenario)) +
-  geom_line(linewidth = 1) +
-  geom_point(size = 2) +
-  scale_y_continuous(labels = scales::comma) + # Format angka desimal/ribuan
-  labs(
-    title = "Total Keuntungan Usaha Projection Comparison: BAU vs. LAS123 (2025–2045)",
-    x = "Tahun",
-    y = "Total Keuntungan Usaha (Juta Rupiah)",
-    color = "Skenario"
+# Ambil nilai numerik spesifik tahun 2025 dan 2045 dari data frame
+val_2025     <- df_long$Surplus[df_long$Year == 2025 & df_long$Skenario == "surplus_BAU"][1]
+val_bau_2045 <- df_long$Surplus[df_long$Year == 2045 & df_long$Skenario == "surplus_BAU"][1]
+val_las_2045 <- df_long$Surplus[df_long$Year == 2045 & df_long$Skenario == "surplus_LAS123"][1]
+
+# ------------------------------------------------------------------------------
+# PILIHAN FORMAT LABEL:
+# Opsi A: Format Triliun Rupiah (misal: 139.34 dan 306.63 seperti di gambar Excel)
+lbl_2025     <- comma(val_2025)
+lbl_bau_2045 <- comma(val_bau_2045)
+lbl_las_2045 <- comma(val_las_2045)
+
+# Opsi B: Format Juta Rupiah penuh (Uncomment jika ingin angka jutaan utuh):
+# lbl_2025     <- comma(val_2025)
+# lbl_bau_2045 <- comma(val_bau_2045)
+# lbl_las_2045 <- comma(val_las_2045)
+# ------------------------------------------------------------------------------
+
+# 2. Plot Grafik Gaya Excel
+p_keuntungan_usaha <- ggplot(df_long, aes(x = Year, y = Surplus, color = Skenario, group = Skenario)) +
+  # --- Garis & Titik Data ---
+  geom_line(linewidth = 1.1) +
+  geom_point(size = 2.5) +
+  
+  # --- Garis Penunjuk / Callout Pointer Lines (Gaya Excel) ---
+  # Garis penunjuk nilai awal 2025 (Kiri Atas)
+  annotate("segment", x = 2025.2, xend = 2026.8, y = val_2025, yend = val_2025 + 20e6, 
+           color = "gray40", linewidth = 0.6) +
+  
+  # Garis penunjuk nilai akhir LAS123 2045 (Kanan Atas)
+  annotate("segment", x = 2044.8, xend = 2042.8, y = val_las_2045, yend = val_las_2045 + 18e6, 
+           color = "gray40", linewidth = 0.6) +
+  
+  # Garis penunjuk nilai akhir BAU 2045 (Kanan Bawah)
+  annotate("segment", x = 2044.8, xend = 2043.2, y = val_bau_2045, yend = val_bau_2045 - 20e6, 
+           color = "gray40", linewidth = 0.6) +
+  
+  # --- Kotak Label Nilai (Excel Style Callout Box) ---
+  # Label Awal 2025 (139.34)
+  annotate("label", x = 2027.2, y = val_2025 + 22e6, label = lbl_2025, 
+           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
+  
+  # Label Akhir LAS123 2045 (306.63)
+  annotate("label", x = 2042.0, y = val_las_2045 + 20e6, label = lbl_las_2045, 
+           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
+  
+  # Label Akhir BAU 2045 (291.38)
+  annotate("label", x = 2042.5, y = val_bau_2045 - 22e6, label = lbl_bau_2045, 
+           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
+
+  # --- Kustomisasi Warna Legenda & Skala Sumbu ---
+  scale_color_manual(
+    name = NULL, # Menghilangkan header legenda
+    values = c(
+      "surplus_BAU"    = "#4178BE",  # Biru Excel
+      "surplus_LAS1"   = "#C0392B",  # Merah Excel
+      "surplus_LAS1B"  = "#27AE60",  # Hijau Excel
+      "surplus_LAS12"  = "#F39C12",  # Oranye Excel
+      "surplus_LAS123" = "#8E44AD"   # Ungu Excel
+    ),
+    labels = c(
+      "surplus_BAU"    = "BAU",
+      "surplus_LAS1"   = "IMLaS-1",
+      "surplus_LAS1B"  = "IMLaS-1B",
+      "surplus_LAS12"  = "IMLaS-2",
+      "surplus_LAS123" = "IMLaS-3"
+    )
   ) +
-  theme_minimal()
+  scale_x_continuous(breaks = seq(2025, 2045, by = 5), limits = c(2024.5, 2045.5)) +
+  scale_y_continuous(labels = comma_format(), limits = c(120000000, 330000000)) +
+  
+  # --- Judul dan Label Sumbu ---
+  labs(
+    title = "Proyeksi Keuntungan Usaha Regional\n2026–2045",
+    x = NULL,
+    y = "Total Keuntungan Usaha (Juta Rupiah)"
+  ) +
+  
+  # --- Tema Tampilan Excel Style ---
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 15, color = "gray20"),
+    axis.title.y = element_text(color = "gray30", size = 12),
+    axis.text = element_text(color = "gray20"),
+    legend.position = "bottom",
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank() # Menghilangkan garis grid vertikal
+  )
+
+# Tampilkan Grafik
+print(p_keuntungan_usaha)
 
 ```
 
@@ -1256,18 +1651,89 @@ df_long <- final_tk %>%
     values_to = "TK"
   )
 
-# Buat Grafik Line
-ggplot(df_long, aes(x = Year, y = TK, color = Skenario, group = Skenario)) +
-  geom_line(linewidth = 1) +
-  geom_point(size = 2) +
-  scale_y_continuous(labels = scales::comma) + # Format angka desimal/ribuan
-  labs(
-    title = "Serapan Tenaga Kerja Projection Comparison: BAU vs. LAS123 (2025–2045)",
-    x = "Tahun",
-    y = "Serapan TK (Orang)",
-    color = "Skenario"
+# Ambil nilai numerik spesifik tahun 2025 dan 2045 dari data frame
+val_2025     <- df_long$TK[df_long$Year == 2025 & df_long$Skenario == "TK_BAU"][1]
+val_bau_2045 <- df_long$TK[df_long$Year == 2045 & df_long$Skenario == "TK_BAU"][1]
+val_las_2045 <- df_long$TK[df_long$Year == 2045 & df_long$Skenario == "TK_LAS123"][1]
+
+# Format angka menjadi pemisah koma (misal: 2,763,201 dan 6,016,163)
+lbl_2025     <- comma(val_2025)
+lbl_bau_2045 <- comma(val_bau_2045)
+lbl_las_2045 <- comma(val_las_2045)
+
+# Plot Grafik 
+p_serapan_tk <- ggplot(df_long, aes(x = Year, y = TK, color = Skenario, group = Skenario)) +
+  # --- Garis & Titik Data ---
+  geom_line(linewidth = 1.1) +
+  geom_point(size = 2.5) +
+  
+  # --- Garis Penunjuk / Callout Pointer Lines (Gaya Excel) ---
+  # Garis penunjuk nilai awal 2025 (Kiri Atas)
+  annotate("segment", x = 2025.2, xend = 2026.8, y = val_2025, yend = val_2025 + 350e3, 
+           color = "gray40", linewidth = 0.6) +
+  
+  # Garis penunjuk nilai akhir LAS123 2045 (Kanan Atas)
+  annotate("segment", x = 2044.8, xend = 2042.8, y = val_las_2045, yend = val_las_2045 + 250e3, 
+           color = "gray40", linewidth = 0.6) +
+  
+  # Garis penunjuk nilai akhir BAU 2045 (Kanan Bawah)
+  annotate("segment", x = 2044.8, xend = 2043.2, y = val_bau_2045, yend = val_bau_2045 - 300e3, 
+           color = "gray40", linewidth = 0.6) +
+  
+  # --- Kotak Label Nilai (Excel Style Callout Box) ---
+  # Label Awal 2025 (2,763,201)
+  annotate("label", x = 2027.2, y = val_2025 + 370e3, label = lbl_2025, 
+           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
+  
+  # Label Akhir LAS123 2045 (6,016,163)
+  annotate("label", x = 2042.0, y = val_las_2045 + 270e3, label = lbl_las_2045, 
+           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
+  
+  # Label Akhir BAU 2045 (5,719,673)
+  annotate("label", x = 2042.5, y = val_bau_2045 - 320e3, label = lbl_bau_2045, 
+           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
+
+  # --- Kustomisasi Warna Legenda & Skala Sumbu ---
+  scale_color_manual(
+    name = NULL, # Menghilangkan header legenda agar persis Excel
+    values = c(
+      "TK_BAU"    = "#4178BE",  # Biru
+      "TK_LAS1"   = "#C0392B",  # Merah
+      "TK_LAS1B"  = "#27AE60",  # Hijau
+      "TK_LAS12"  = "#F39C12",  # Oranye
+      "TK_LAS123" = "#8E44AD"   # Ungu
+    ),
+    labels = c(
+      "TK_BAU"    = "BAU",
+      "TK_LAS1"   = "IMLaS-1",
+      "TK_LAS1B"  = "IMLaS-1B",
+      "TK_LAS12"  = "IMLaS-2",
+      "TK_LAS123" = "IMLaS-3"
+    )
   ) +
-  theme_minimal()
+  scale_x_continuous(breaks = seq(2025, 2045, by = 5), limits = c(2024.5, 2045.5)) +
+  scale_y_continuous(labels = comma_format(), limits = c(2500000, 6500000)) +
+  
+  # --- Judul dan Label Sumbu ---
+  labs(
+    title = "Proyeksi Total Tenaga Kerja\n2026–2045",
+    x = NULL,
+    y = "Serapan TK (Orang)"
+  ) +
+  
+  # --- Tema Tampilan Excel Style ---
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 15, color = "gray20"),
+    axis.title.y = element_text(color = "gray30", size = 12),
+    axis.text = element_text(color = "gray20"),
+    legend.position = "bottom",
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank() # Menghilangkan garis vertikal
+  )
+
+# Tampilkan Grafik
+print(p_serapan_tk)
 
 ```
 
@@ -1312,14 +1778,14 @@ ITFL_BAU <- mean(tabel_multiplier_sektoral$ITFL[DeskripsiSektor$Constrained == 1
 num_years_full <- length(Leontief_Inverse_full_list) # 21 tahun (2025:2045)
 years      <- 2025:2045
 
-# 1. Inisialisasi List Penyimpan
+# Inisialisasi List Penyimpan
 TFL_list  <- vector("list", num_years_full)
 ITFL_list <- vector("list", num_years_full)
 
 names(TFL_list)  <- paste0("Year_", years)
 names(ITFL_list) <- paste0("Year_", years)
 
-# 2. Inisialisasi Matriks/Data Frame untuk Rekapitulasi (66 Sektor x 21 Tahun)
+# Inisialisasi Matriks/Data Frame untuk Rekapitulasi (66 Sektor x 21 Tahun)
 TFL_matrix  <- matrix(0, nrow = jml_sektor, ncol = num_years_full)
 ITFL_matrix <- matrix(0, nrow = jml_sektor, ncol = num_years_full)
 
@@ -1330,7 +1796,7 @@ rownames(TFL_matrix)  <- namaSektor
 rownames(ITFL_matrix) <- namaSektor
 
 # ------------------------------------------------------------------------------
-# 3. LOOPING PERHITUNGAN TFL & ITFL
+# LOOPING PERHITUNGAN TFL & ITFL
 # ------------------------------------------------------------------------------
 for (t in 1:num_years_full) {
   
@@ -1353,7 +1819,7 @@ for (t in 1:num_years_full) {
 }
 
 # ------------------------------------------------------------------------------
-# 4. KONVERSI MENJADI DATA FRAME RAPI
+# KONVERSI MENJADI DATA FRAME RAPI
 # ------------------------------------------------------------------------------
 
 # Data Frame TFL (2025 - 2045)
@@ -1379,7 +1845,7 @@ v_constrained[is.na(v_constrained)] <- 0
 # Identifikasi Kolom Numerik ITFL (Tahun 2025 s.d. 2045)
 kolom_itfl <- grep("^ITFL_", colnames(df_ITFL_simulasi), value = TRUE)
 
-# 3. Perkalian Elemen Demi Elemen (Sweep / Element-wise Multiplication)
+# Perkalian Elemen Demi Elemen (Sweep / Element-wise Multiplication)
 # Sektor dengan Constrained = 1 akan mempertahankan nilai ITFL-nya
 # Sektor dengan Constrained = 0 akan bernilai 0
 matriks_itfl_constrained <- sweep(
@@ -1398,11 +1864,11 @@ df_ITFL_constrained <- data.frame(
   check.names = FALSE
 )
 
-# 1. Hitung ITFL_BAU dengan perkalian tagging Constrained (Sektor non-lahan = 0)
+# Hitung ITFL_BAU dengan perkalian tagging Constrained (Sektor non-lahan = 0)
 itfl_bau_constrained <- tabel_multiplier_sektoral$ITFL * v_constrained
 ITFL_BAU <- mean(itfl_bau_constrained, na.rm = TRUE) # Pembagi tetap 66 sektor
 
-# 2. Hitung Rerata Simulasi LAS terhadap Seluruh Baris (66 Sektor)
+# Hitung Rerata Simulasi LAS terhadap Seluruh Baris (66 Sektor)
 kolom_itfl <- grep("^ITFL_", colnames(df_ITFL_constrained), value = TRUE)
 
 df_rerata_ITFL <- df_ITFL_constrained %>%
@@ -1419,41 +1885,77 @@ df_rerata_ITFL <- df_ITFL_constrained %>%
 
 write_xlsx(df_rerata_ITFL, "Final_Keterkaitan Sektor_SOLUSI_Bukecap.xlsx")
 
+# Ambil nilai numerik spesifik tahun 2025 dan 2045 dari data frame
+val_2025     <- df_rerata_ITFL$ITFL_BAU[df_rerata_ITFL$Tahun == 2025]
+val_bau_2045 <- df_rerata_ITFL$ITFL_BAU[df_rerata_ITFL$Tahun == 2045]
+val_las_2045 <- df_rerata_ITFL$ITFL_LAS123[df_rerata_ITFL$Tahun == 2045]
+
+# Format angka menjadi 4 desimal (misal: 0.1750 dan 0.1886)
+lbl_2025     <- number(val_2025, accuracy = 0.0001)
+lbl_bau_2045 <- number(val_bau_2045, accuracy = 0.0001)
+lbl_las_2045 <- number(val_las_2045, accuracy = 0.0001)
+
 p_tren_ITFL <- ggplot(df_rerata_ITFL, aes(x = Tahun)) +
-  # 1. Garis & Titik untuk Tren Rerata ITFL Simulasi (Garis Lurus)
-  geom_line(aes(y = ITFL_LAS123, color = "Simulasi LAS"), linewidth = 1.1) +
-  geom_point(aes(y = ITFL_LAS123, color = "Simulasi LAS"), size = 2) +
+  # --- Line & Point ---
+  geom_line(aes(y = ITFL_LAS123, color = "IMLaS-3"), linewidth = 1.1) +
+  geom_point(aes(y = ITFL_LAS123, color = "IMLaS-3"), size = 2.5) +
   
-  # 2. Garis & Titik untuk Baseline ITFL BAU (Diubah menjadi Garis Lurus / linetype = "solid")
-  geom_line(aes(y = ITFL_BAU, color = "Baseline BAU"), linewidth = 1.1, linetype = "solid") +
-  geom_point(aes(y = ITFL_BAU, color = "Baseline BAU"), size = 2) +
+  geom_line(aes(y = ITFL_BAU, color = "BAU"), linewidth = 1.1, linetype = "solid") +
+  geom_point(aes(y = ITFL_BAU, color = "BAU"), size = 2.5) +
   
-  # 3. Skala Sumbu
-  scale_x_continuous(breaks = seq(2025, 2045, by = 5)) +
-  scale_y_continuous(labels = scales::number_format(accuracy = 0.01)) +
+  # --- Garis Penunjuk / Callout Pointer Lines ---
+  # Pointer Line nilai awal 2025 (Kiri Atas)
+  annotate("segment", x = 2025.1, xend = 2026.5, y = val_2025, yend = val_2025 + 0.0025, 
+           color = "gray40", linewidth = 0.6) +
   
-  # 4. Kustomisasi Warna Legenda
+  # Pointer Line nilai akhir IMLaS-3 2045 (Kanan Atas)
+  annotate("segment", x = 2044.9, xend = 2043.2, y = val_las_2045, yend = val_las_2045 + 0.0025, 
+           color = "gray40", linewidth = 0.6) +
+  
+  # Pointer Line nilai akhir BAU 2045 (Kanan Atas)
+  annotate("segment", x = 2044.9, xend = 2043.2, y = val_bau_2045, yend = val_bau_2045 + 0.0025, 
+           color = "gray40", linewidth = 0.6) +
+  
+  # --- Kotak Label Nilai (Excel Style Callout Box) ---
+  # Label Awal 2025 (0.1750)
+  annotate("label", x = 2026.8, y = val_2025 + 0.0027, label = lbl_2025, 
+           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4, label.padding = unit(0.35, "lines")) +
+  
+  # Label Akhir IMLaS-3 2045 (0.1886)
+  annotate("label", x = 2042.8, y = val_las_2045 + 0.0027, label = lbl_las_2045, 
+           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4, label.padding = unit(0.35, "lines")) +
+  
+  # Label Akhir BAU 2045 (0.1750)
+  annotate("label", x = 2042.8, y = val_bau_2045 + 0.0027, label = lbl_bau_2045, 
+           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4, label.padding = unit(0.35, "lines")) +
+
+  # --- Skala dan Kustomisasi Warna ---
+  scale_x_continuous(breaks = seq(2025, 2045, by = 5), limits = c(2024.5, 2045.5)) +
+  scale_y_continuous(labels = number_format(accuracy = 0.0010)) +
   scale_color_manual(
-    name = "Skenario",
+    name = NULL, # Menghilangkan judul legenda agar persis Excel
     values = c(
-      "Simulasi LAS" = "#1B9E77",  # Hijau
-      "Baseline BAU" = "#D95F02"   # Oranye
+      "BAU"     = "#4178BE", # Warna Biru khas Excel
+      "IMLaS-3" = "#C0392B"  # Warna Merah Marun khas Excel
     )
   ) +
   
-  # 5. Judul dan Label Sumbu
+  # --- Judul dan Label Sumbu ---
   labs(
-    title = "Rataan ITFL Projection Comparison: BAU vs. LAS123 (2025–2045)",
-    x = "Tahun",
-    y = "Nilai Rerata ITFL"
+    title = "Proyeksi Keterkaitan Kedepan Sektor SDA\n2026–2045",
+    x = NULL, # Menghilangkan label x "Tahun"
+    y = "Indeks Total Forward Linkage"
   ) +
   
-  # 6. Tema Tampilan
-  theme_minimal(base_size = 12) +
+  # --- Tema Minimalis Eksklusif ---
+  theme_minimal(base_size = 13) +
   theme(
-    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 14, color = "gray20"),
+    axis.title.y = element_text(color = "gray30", size = 12),
+    axis.text = element_text(color = "gray20"),
     legend.position = "bottom",
-    legend.title = element_text(face = "bold")
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank() # Menghilangkan garis vertikal
   )
 
 # Tampilkan Plot
