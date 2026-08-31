@@ -24,7 +24,7 @@ Terdapat 10 file data input berformat xlsx yang digunakan, yaitu:
 ```{r tabel-rapi, echo=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
 if (!requireNamespace("kableExtra", quietly = TRUE)) {
-  install.packages("kableExtra")
+  install.packages("kableExtra", repos = "https://cloud.r-project.org")
 }
 library(kableExtra)
 
@@ -301,7 +301,7 @@ df_skenario <- data.frame(
 
 kable(df_skenario, format = "html", escape = FALSE, align = c("l", "l", "l")) %>%
   kable_styling(
-    bootstrap_options = c("hover", "condensed"), 
+    bootstrap_options = c("hover", "condensed"),
     full_width = TRUE,
     html_font = "sans-serif"
   ) %>%
