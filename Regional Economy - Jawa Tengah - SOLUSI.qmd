@@ -144,7 +144,7 @@ propLuasPesisir <- 0.144
 
 ```
 
-## Step-1 Analisa Deskriptif
+## Step 1 - Analisa Deskriptif
 
 
 Analisis deskriptif dilakukan untuk melihat gambaran struktur dan dinamika kondisi perekonomian di wilayah Kabupaten Banyumas, Kabupaten Kebumen, dan Kabupaten Cilacap pada tahun 2025. Tabel Input–Output (IO) BUKECAP 2025 digunakan sebagai dasar analisis untuk mengidentifikasi keterkaitan penggunaan input dan output, baik secara intra-sektoral maupun inter-sektoral. [kaudran 1] Tabel ini menunjukkan bagaimana output dari sautu sektor dipergunakan sebagai input sektor lainnya. Selain itu menunjukkan dimensi input dan output sektor, tabel tersebut juga menunjukkan bagaimana keterkaitan sektor dengan input primer seperti kompensasi tenaga kerja, permintaan akhir. Tabel IO menggunakn satuan moneter yakni juta rupiah.
@@ -270,7 +270,7 @@ Uraian Skenario:
         - Dari Sektor Peternakan dan hasilnya ke Sektor 24, 25
    
 
-## Indikator Makro yang akan dituliskan di dokumen
+## Output - Indikator Makro yang akan dituliskan di dokumen
 1. Pengembangan Skenario Ekonomi Regional
 ```{r tabel-skenario, echo=FALSE, message=FALSE, warning=FALSE}
 df_skenario <- data.frame(
