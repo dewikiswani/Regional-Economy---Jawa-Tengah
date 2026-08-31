@@ -23,6 +23,9 @@ Terdapat 10 file data input berformat xlsx yang digunakan, yaitu:
 
 ```{r tabel-rapi, echo=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
+if (!requireNamespace("kableExtra", quietly = TRUE)) {
+  install.packages("kableExtra")
+}
 library(kableExtra)
 
 # Membuat data frame
@@ -273,6 +276,7 @@ Uraian Skenario:
 ## Output - Indikator Makro yang akan dituliskan di dokumen
 1. Pengembangan Skenario Ekonomi Regional
 ```{r tabel-skenario, echo=FALSE, message=FALSE, warning=FALSE}
+
 df_skenario <- data.frame(
   Skenario = c(
     "<b>BAU</b><br><span style='color: #555555;'>Bisnis-Seperti-Biasa / <i>Business as Usual</i></span>",
