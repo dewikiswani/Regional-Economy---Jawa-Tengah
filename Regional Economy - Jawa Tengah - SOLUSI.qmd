@@ -19,18 +19,18 @@ Mengingat output sektor berbasis lahan dibatasi secara fisik oleh kapasitas tutu
 
 ## Data Input and Reading
 
-Terdapat 10 file data input berformat xlsx yang digunakan, yaitu:
+Terdapat 11 file data input berformat xlsx yang digunakan, yaitu:
 
 ```{r tabel-rapi, echo=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
 if (!requireNamespace("kableExtra", quietly = TRUE)) {
-  install.packages("kableExtra", repos = "https://cloud.r-project.org")
+  install.packages("kableExtra")
 }
 library(kableExtra)
 
 # Membuat data frame
 df <- data.frame(
-  No = 1:10,
+  No = 1:11,
   `Keterangan Data Input` = c(
     "Tabel Input-Output BUKECAP tahun 2025",
     "Data deskripsi sektor yang berisi:<br>• Nama pendek sektor<br>• Nama singkat sektor<br>• Kategori KSM<br>• Label constrained sector<br>• Label unconstrained sector<br>• Rataan pertumbuhan PDRB ADHK (yoy) setiap sector unconstrained<br>• Jumlah tenaga kerja setiap sektor di tahun 2025",
@@ -45,7 +45,8 @@ df <- data.frame(
     <br>•resiko (?)",
     "Skenario tipe 3 menggunakan asumsi perubahan komposisi input-output sektor (hilirisasi dan perubahan investasi)",
     "Data jumlah populasi BUKECAP tahun 2025 dan proyeksi tahun 2026 hingga 2045",
-    "Data jumlah populasi wilayah pesisir BUKECAP tahun 2025 dan proyeksi tahun 2026 hingga 2045"
+    "Data jumlah populasi wilayah pesisir BUKECAP tahun 2025 dan proyeksi tahun 2026 hingga 2045",
+    "Data PDRB ADHK secara timeseries dari tahun 2010 hingga 2025"
   ),
   `Nama Variabel R` = c("<code>IO BUKECAP</code>", 
                        "<code>DeskripsiSektor</code>", 
@@ -56,7 +57,8 @@ df <- data.frame(
                        "<code>SType2</code>", 
                        "<code>SType3</code>", 
                        "<code>populasiPenduduk</code>", 
-                       "<code>populasiPendudukPesisir</code>"),
+                       "<code>populasiPendudukPesisir</code>",
+                       "<code>pdrb_decay</code>"),
   `Nama File XLSX` = c("io", 
                         "DeskripsiSektor", 
                         "LDM", 
@@ -66,7 +68,8 @@ df <- data.frame(
                         "SType2", 
                         "SType3", 
                         "populasi penduduk", 
-                        "populasi penduduk pesisir"),
+                        "populasi penduduk pesisir",
+                        "Bukecap_ADHK_PDRB_TimeSeries"),
   check.names = FALSE
 )
 
@@ -90,6 +93,7 @@ library(patchwork)
 library(writexl)
 library(plotly)
 library(scales) # Untuk format koma angka
+library(ggrepel)
 
 # Data Ekonomi Provinsi
 # Baca Matriks Transaksi Inter-Industri Provinsi (Z_prov) 
@@ -129,6 +133,8 @@ SType3 <- read_excel("SType3.xlsx",
 populasiPenduduk <- read_excel("populasi penduduk.xlsx", col_names = TRUE)
 
 populasiPendudukPesisir <- read_excel("populasi penduduk pesisir.xlsx", col_names = TRUE)
+
+pdrb_decay <- read.csv2("Bukecap_ADHK_PDRB_TimeSeries.csv", dec = ",", check.names = FALSE)
  
 # Penyesuaian nama Input kolom yang dibutuhkan
 jml_sektor <- 66
@@ -184,7 +190,7 @@ Catatan untuk Step 1-Analisis deskritif:
  - PDRB Tabel IO terbangun dari NTB tanpa pajak atas produk
  - Grafik multiplier yang digunakan untuk 66 sektor untuk simple multiplier : dan di jateng di dapat sektor lahannya memiliki multiplier yang relative kecil
 
-## Step 2 - Perhitungan LR dan land productivity coeficient
+## Step 2 - Perhitungan LR dan Land Productivity Coefficient
 
 1. Membuat land distribution coeff  matrix (dibuat tania dulu untuk BUKECAP)
 2. 26 kelas landcover BUKECAP, request tim spasial untuk dapat luas administrasi BUKECAP 
@@ -414,6 +420,18 @@ Constrained <- as.matrix(DeskripsiSektor[, 5])
 
 ## Linkages analysis
 
+Analisis keterkaitan sektor digunakan untuk mengetahui seberapa kuat interaksi antarsektor dalam suatu wilayah melalui hubungan input yang dibutuhkan dan output yang dihasilkan. Keterkaitan antarsektor dapat dilihat dari dua arah, yaitu keterkaitan ke belakang (backward linkage) dan keterkaitan ke depan (forward linkage). Semakin tinggi nilai backward linkage, semakin besar ketergantungan suatu sektor terhadap input yang berasal dari sektor-sektor lainnya. Sementara itu, semakin tinggi nilai forward linkage, semakin besar peran output suatu sektor sebagai input bagi sektor-sektor lainnya.
+
+Klasifikasi sektor dalam diagram dilakukan berdasarkan Indeks Daya Penyebaran (backward linkage) dan Indeks Derajat Kepekaan (forward linkage), dengan nilai 1,00 sebagai threshold yang merepresentasikan rata-rata keterkaitan antarsektor. Dengan demikian, sektor dengan nilai indeks lebih dari 1 menunjukkan keterkaitan yang berada di atas rata-rata, sedangkan nilai kurang dari 1 menunjukkan keterkaitan yang berada di bawah rata-rata.
+
+Hasil analisis backward dan forward linkage di BUKECAP tahun 2025 menunjukkan bahwa sektor yang berada pada Kuadran I, yaitu sektor dengan nilai backward linkage dan forward linkage di atas 1, memiliki keterkaitan antarsektor yang kuat baik ke belakang maupun ke depan. Sektor-sektor tersebut memiliki peran strategis dalam struktur perekonomian karena peningkatan aktivitasnya berpotensi meningkatkan permintaan terhadap input dari sektor lain sekaligus meningkatkan ketersediaan output yang digunakan sebagai input oleh sektor lainnya. Sektor yang termasuk dalam Kuadran I di BUKECAP antara lain X35, X22, X11, X33, dan X49.
+
+Kuadran II menunjukkan sektor dengan backward linkage di atas 1 dan forward linkage di bawah 1. Sektor dalam kelompok ini relatif kuat dalam menarik input dari sektor lainnya. Dengan demikian, peningkatan permintaan akhir terhadap sektor tersebut berpotensi mendorong peningkatan aktivitas pada sektor-sektor yang menjadi pemasok inputnya.
+Kuadran III menunjukkan sektor dengan backward linkage di bawah 1 dan forward linkage di atas 1. Sektor dalam kelompok ini memiliki peran relatif penting sebagai penyedia output yang digunakan sebagai input oleh sektor lainnya. Oleh karena itu, perubahan aktivitas pada sektor-sektor tersebut berpotensi memengaruhi keberlangsungan aktivitas sektor hilir yang menggunakan outputnya sebagai input.
+
+Sementara itu, Kuadran IV menunjukkan sektor dengan backward linkage dan forward linkage di bawah 1. Hal ini menunjukkan bahwa keterkaitan sektor tersebut, baik sebagai pengguna input maupun sebagai penyedia output bagi sektor lainnya, relatif berada di bawah rata-rata. Dengan demikian, perubahan aktivitas pada sektor-sektor dalam kuadran ini cenderung memiliki efek keterkaitan antarsektor yang relatif lebih terbatas.
+
+
 ```{r, echo = FALSE, warning=FALSE}
 # ==============================================================================
 # MENGHITUNG Backward dan Forward Linkage
@@ -475,7 +493,8 @@ p_linkage <- ggplot(tabel_kuadran, aes(x = ITBL, y = ITFL, label = id_Sektor)) +
   geom_point(aes(color = Kuadran), size = 3) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "red") +
   geom_vline(xintercept = 1, linetype = "dashed", color = "red") +
-  geom_text(vjust = -0.7, size = 2.5, check_overlap = TRUE) +
+  # geom_text(vjust = -0.7, size = 2.5, check_overlap = TRUE) +
+  
   labs(
     title = "Diagram Kuadran Backward & Forward Linkage Sektor Ekonomi",
     subtitle = "Garis Merah Putus-putus Menunjukkan Batas Indeks = 1.00",
@@ -485,9 +504,43 @@ p_linkage <- ggplot(tabel_kuadran, aes(x = ITBL, y = ITFL, label = id_Sektor)) +
   theme_minimal()
 
 p_linkage
+
+# 4. VISUALISASI DIAGRAM KUADRAN (MENGGUNAKAN LABELS = NamaPendek)
+p_linkagePendek <- ggplot(tabel_kuadran, aes(x = ITBL, y = ITFL, label = NamaPendek)) +
+  geom_point(aes(color = Kuadran), size = 3) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "red") +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "red") +
+  
+  # Opsi A: Menggunakan geom_text_repel agar label otomatis tidak bertabrakan
+  geom_text_repel(size = 3, max.overlaps = 20, fontface = "bold") +
+  
+  # Opsi B: Menggunakan geom_text bawaan (uncomment jika tidak ingin pakai ggrepel)
+  # geom_text(vjust = -0.7, size = 2.5, check_overlap = TRUE) +
+  
+  labs(
+    title = "Diagram Kuadran Backward & Forward Linkage Sektor Ekonomi",
+    subtitle = "Garis Merah Putus-putus Menunjukkan Batas Indeks = 1.00",
+    x = "Indeks Total Backward Linkage (ITBL) / Indeks Daya Penyebaran (IDP)",
+    y = "Indeks Total Forward Linkage (ITFL) / Indeks Derajat Kepekaan (IDK)"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5),
+    plot.subtitle = element_text(hjust = 0.5),
+    legend.position = "bottom"
+  )
+
+# Tampilkan Plot
+p_linkagePendek
 ```
 
 ## Multiplier Analysis
+Analisis multiplier digunakan untuk mengetahui besarnya dampak ekonomi yang ditimbulkan oleh perubahan permintaan akhir pada suatu sektor terhadap perekonomian secara keseluruhan. Dampak ekonomi yang dianalisis meliputi output, tenaga kerja, pendapatan, dan kebutuhan impor.
+
+Output multiplier menunjukkan besarnya perubahan total output seluruh sektor yang ditimbulkan oleh adanya perubahan permintaan akhir pada suatu sektor. Hasil analisis output multiplier di wilayah BUKECAP tahun 2025 menunjukkan bahwa sektor industri barang galian bukan logam memiliki nilai output multiplier tertinggi, diikuti oleh sektor ketenagalistrikan, angkutan perairan, angkutan udara, dan industri logam dasar. Sektor industri barang galian bukan logam memiliki nilai output multiplier sebesar 0,2881. Artinya, setiap peningkatan permintaan akhir sebesar Rp1 juta pada sektor tersebut akan mendorong peningkatan output perekonomian secara keseluruhan sebesar sekitar Rp288 ribu melalui keterkaitan antarsektor.
+
+Dari 15 sektor dengan nilai output multiplier tertinggi, belum terdapat sektor berbasis lahan yang masuk dalam kelompok tersebut. Hal ini menunjukkan bahwa, berdasarkan struktur keterkaitan input-output BUKECAP tahun 2025, sektor berbasis lahan belum menjadi sektor yang memiliki efek pengganda output paling besar dibandingkan sektor-sektor lainnya.
+
 
 ```{r, echo = FALSE, warning=FALSE}
 # ==============================================================================
@@ -625,7 +678,7 @@ p_income <- ggplot(top15_income, aes(x = reorder(nama_Sektor, Income_Effect), y 
     title = "Top 15 Sektor - Income Effect",
     subtitle = "Dampak Pendapatan Rumah Tangga per Unit Permintaan Akhir",
     x = NULL,
-    y = "Income Effect (Rp/Rp)"
+    y = "Income Effect (Juta Rupiah/Juta Rupiah)"
   ) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.2))) +
   theme_minimal() +
@@ -643,7 +696,7 @@ p_labour <- ggplot(top15_labour, aes(x = reorder(nama_Sektor, Labour_Effect), y 
     title = "Top 15 Sektor - Labour Effect",
     subtitle = "Penyerapan Tenaga Kerja per Unit Permintaan Akhir",
     x = NULL,
-    y = "Labour Effect (Orang/Juta Rp)"
+    y = "Labour Effect (Orang/Juta Rupiah)"
   ) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.2))) +
   theme_minimal() +
@@ -661,7 +714,7 @@ p_import <- ggplot(top15_import, aes(x = reorder(nama_Sektor, Import_Effect), y 
     title = "Top 15 Sektor - Import Effect (Kebocoran Ekonomi)",
     subtitle = "Dampak Kebocoran Impor Input per Unit Permintaan Akhir",
     x = NULL,
-    y = "Import Effect (Rp/Rp)"
+    y = "Import Effect (Juta Rupiah/Juta Rupiah)"
   ) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.2))) +
   theme_minimal() +
@@ -678,7 +731,7 @@ p_output <- ggplot(top15_import, aes(x = reorder(nama_Sektor, Output_Multiplier)
   labs(
     title = "Top 15 Sektor - Output Multiplier",
     x = NULL,
-    y = "Output Effect (Rp/Rp)"
+    y = "Output Effect (Juta Rupiah/Juta Rupiah)"
   ) +
   scale_y_continuous(expand = expansion(mult = c(0, 0.2))) +
   theme_minimal() +
@@ -688,9 +741,9 @@ p_output <- ggplot(top15_import, aes(x = reorder(nama_Sektor, Output_Multiplier)
   )
 
 p_output
-p_import
-p_labour
-p_income
+# p_import
+# p_labour
+# p_income
 
 # ------------------------------------------------------------------------------
 # 3. GABUNGKAN DAN TAMPILKAN GRAFIK
@@ -707,6 +760,41 @@ gabungan_plot <- p_income / p_labour / p_import / p_output +
     )
   )
 
+
+```
+
+Analisis Labour effect menunjukkan besarnya tambahan tenaga kerja yang terserap sebagai dampak dari peningkatan permintaan akhir pada suatu sektor, baik secara langsung maupun tidak langsung melalui keterkaitan antarsektor. Nilai labour effect dinyatakan dalam jumlah tenaga kerja yang terserap untuk setiap peningkatan permintaan akhir sebesar Rp1 juta.
+
+Hasil analisis labour effect di wilayah BUKECAP tahun 2025 menunjukkan bahwa sektor tembakau memiliki labour effect tertinggi (0,0255), diikuti oleh sektor pengadaan air, pengelolaan sampah, limbah, dan daur ulang (0,0248), tebu (0,0225), hortikultura (0,0221), serta jasa lainnya (0,213). Nilai labour effect sektor tembakau sebesar 0,0255 bermakna bahwa setiap peningkatan permintaan akhir sebesar Rp1 juta pada sektor tersebut berpotensi meningkatkan penyerapan tenaga kerja sekitar 0,0255 orang, atau setara dengan sekitar 26 orang untuk setiap peningkatan permintaan akhir sebanyak Rp1 miliar.
+
+Berbeda dengan hasil output multiplier, sektor berbasis lahan cukup dominan dalam labour effect. Dari 15 sektor dengan nilai labour effect tertinggi, sebagian besar merupakan sektor berbasis lahan, antara lain tembakau, tebu, hortikultura, kelapa, rempah, tanaman pangan, padi, peternakan, jagung, kopi, serta jasa pertanian, pascapanen, perburuan, dan kegiatan penunjang. Hal ini menunjukkan bahwa sektor berbasis lahan di BUKECAP memiliki peran yang relatif besar dalam penyerapan tenaga kerja.
+
+```{r, echo = FALSE, warning=FALSE}
+p_labour
+
+```
+
+Analisis income effect (efek pendapatan) digunakan untuk mengetahui besarnya dampak peningkatan permintaan akhir suatu sektor terhadap pendapatan rumah tangga yang dihasilkan dalam perekonomian. Hasil analisis income effect di wilayah BUKECAP tahun 2025 menunjukkan bahwa sektor real estat memiliki nilai income effect tertinggi, yaitu sebesar 0,5448, diikuti oleh administrasi pemerintahan, pertahanan, dan jaminan sosial wajib (0,5339), aktivitas jasa keuangan, bukan asuransi dan dana pensiun (0,5241), pendidikan (0,5175), dan asuransi, penjaminan, reasuransi, dan dana pensiun (0,5162). Artinya, setiap peningkatan permintaan akhir sebesar Rp1 juta pada sektor real estat akan mendorong peningkatan pendapatan rumah tangga sekitar Rp545 ribu melalui aktivitas ekonomi yang tercipta dalam perekonomian.
+
+Dari 15 sektor dengan nilai income effect tertinggi, belum terdapat sektor berbasis lahan. Kelompok sektor dengan efek pendapatan tertinggi masih didominasi oleh sektor jasa, pemerintahan, keuangan, perdagangan, dan aktivitas penunjang ekonomi. Hal ini menunjukkan bahwa berdasarkan struktur perekonomian BUKECAP tahun 2025, sektor-sektor tersebut memiliki kemampuan yang lebih besar dalam menghasilkan pendapatan rumah tangga dibandingkan sektor berbasis lahan.
+
+
+
+```{r, echo = FALSE, warning=FALSE}
+p_income
+
+```
+
+Analisis import effect (efek kebocoran impor) digunakan untuk mengetahui besarnya kebutuhan input impor yang timbul akibat peningkatan permintaan akhir pada suatu sektor. Indikator ini menunjukkan seberapa besar bagian dari tambahan permintaan akhir yang harus dipenuhi melalui input dari luar wilayah, sehingga semakin tinggi nilai import effect, semakin besar pula potensi kebocoran ekonomi melalui impor.
+
+Hasil analisis import effect di wilayah BUKECAP tahun 2025 menunjukkan bahwa sektor ketenagalistrikan memiliki nilai import effect tertinggi, yaitu sebesar 0,443, diikuti oleh industri produk batubara dan pengilangan minyak bumi (0,4268), industri logam dasar (0,4074), industri tekstil (0,3810), dan industri kendaraan bermotor dan alat angkutan lainnya (0,3810). Artinya, setiap peningkatan permintaan akhir sebesar Rp1 juta pada sektor ketenagalistrikan akan memunculkan kebutuhan input impor sekitar Rp443 ribu. Dengan demikian, relatif tingginya nilai import effect pada sektor tersebut menunjukkan bahwa aktivitas produksinya masih memiliki ketergantungan yang cukup besar terhadap input yang berasal dari luar wilayah BUKECAP.
+
+Selanjutnya, sektor industri barang logam, bukan mesin dan peralatannya (0,3698), industri mesin dan perlengkapan (0,3585), industri barang logam, komputer, elektronik, optik, dan peralatan listrik (0,3569), serta industri kimia, farmasi, dan obat tradisional (0,3541) juga menunjukkan efek kebocoran impor yang relatif tinggi. Kondisi ini terutama terlihat pada kelompok sektor industri yang membutuhkan bahan baku, komponen, mesin, atau teknologi yang sebagian masih dipasok dari luar wilayah.
+
+Dari 15 sektor dengan nilai import effect tertinggi, tidak terdapat sektor berbasis lahan. Hal ini menunjukkan bahwa sektor berbasis lahan di BUKECAP relatif memiliki kebutuhan input impor yang lebih rendah dibandingkan sektor-sektor lainnya. Kondisi tersebut dapat menjadi indikasi bahwa pengembangan sektor berbasis lahan berpotensi menghasilkan kebocoran impor yang relatif lebih kecil.
+
+```{r, echo = FALSE, warning=FALSE}
+p_import
 
 ```
 
@@ -1144,6 +1232,8 @@ write_xlsx(final_pdrb, "Final_PDRB_SOLUSI_Bukecap.xlsx")
 
 knitr::kable(
   final_pdrb,
+  row.names = FALSE, # MENGHILANGKAN KOLOM NOMOR BARIS DI PALING KIRI
+  caption = "PDRB BUKECAP (Juta Rupiah)", # <-- Judul Tabel
   digits = 2,
   format.args = list(big.mark = ","),
   col.names = c("Year","BAU", "LAS 1", "LAS 1B", "LAS 12", "LAS 123"),
@@ -1443,6 +1533,8 @@ write_xlsx(final_income, "Final_Income_SOLUSI_Bukecap.xlsx")
 
 knitr::kable(
   final_income,
+  row.names = FALSE, # MENGHILANGKAN KOLOM NOMOR BARIS DI PALING KIRI
+  caption = "Pendapatan Masyarakat BUKECAP per Kapita (Juta Rupiah)", # <-- Judul Tabel
   digits = 2,
   format.args = list(big.mark = ","),
   col.names = c("Year","BAU", "LAS 1", "LAS 1B", "LAS 12", "LAS 123"),
@@ -1585,7 +1677,7 @@ print(p_income_kapita)
 
 
 
-## Pendapatan Masyarakat Pesisir Per Kapita
+## Pendapatan Masyarakat Pesisir per Kapita
 Proyeksi pendapatan per kapita masyarakat pesisir dihitung dengan membagi
 proyeksi pendapatan masyarakat pesisir BUKECAP dengan proyeksi populasi
 masyarakat pesisir. Kedua proyeksi tersebut diestimasi berdasarkan proporsi
@@ -1619,6 +1711,8 @@ final_income_pesisir[, -1] <- final_income_pesisir[, -1] * propLuasPesisir
 write_xlsx(final_income_pesisir, "Final_Income_pesisir_SOLUSI_Bukecap.xlsx")
 knitr::kable(
   final_income_pesisir,
+  row.names = FALSE, # MENGHILANGKAN KOLOM NOMOR BARIS DI PALING KIRI
+  caption = "Pendapatan Masyarakat Pesisir per Kapita (Juta Rupiah)", # <-- Judul Tabel
   digits = 2,
   format.args = list(big.mark = ","),
   col.names = c("Year","BAU", "LAS 1", "LAS 1B", "LAS 12", "LAS 123"),
@@ -1798,6 +1892,8 @@ final_surplus[, -1] <- final_surplus[, -1] * propSurplus
 write_xlsx(final_surplus, "Final_Surplus_SOLUSI_Bukecap.xlsx")
 knitr::kable(
   final_surplus,
+  row.names = FALSE, # MENGHILANGKAN KOLOM NOMOR BARIS DI PALING KIRI
+  caption = "Total Keuntungan Usaha (Juta Rupiah)", # <-- Judul Tabel
   digits = 2,
   format.args = list(big.mark = ","),
   col.names = c("Year","BAU", "LAS 1", "LAS 1B", "LAS 12", "LAS 123"),
@@ -1970,15 +2066,30 @@ colnames(baris_2025) <- colnames(df_simulasi_tk)
 # Gabungkan baris_2025 di bagian paling atas
 final_tk <- rbind(baris_2025, df_simulasi_tk)
 
-
 write_xlsx(final_tk, "Final_TK_SOLUSI_Bukecap.xlsx")
+# knitr::kable(
+#   final_tk,
+#   digits = 2,
+#   format.args = list(big.mark = ","),
+#   col.names = c("Year","BAU", "LAS 1", "LAS 1B", "LAS 12", "LAS 123"),
+#   align = c("c", "r", "r", "r", "r", "r")
+# )
+
 knitr::kable(
   final_tk,
-  digits = 2,
+  row.names = FALSE, # MENGHILANGKAN KOLOM NOMOR BARIS DI PALING KIRI
+  caption = "Serapan Tenaga Kerja berdasarkan Skenario (dalam Orang)", # <-- Judul Tabel
+  digits = 0, # Menggunakan 0 desimal karena jumlah orang berupa angka bulat
   format.args = list(big.mark = ","),
-  col.names = c("Year","BAU", "LAS 1", "LAS 1B", "LAS 12", "LAS 123"),
+  col.names = c("Year", "BAU", "LAS 1", "LAS 1B", "LAS 12", "LAS 123"),
   align = c("c", "r", "r", "r", "r", "r")
-)
+) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = TRUE,
+    position = "center"
+  ) %>%
+  row_spec(0, bold = TRUE, extra_css = "border-top: 2px solid #ccc; border-bottom: 2px solid #ccc;")
 
 # Plot perbandingan 
 # Transformasi data ke format long
@@ -2298,5 +2409,272 @@ p_tren_ITFL <- ggplot(df_rerata_ITFL, aes(x = Tahun)) +
 
 # Tampilkan Plot
 p_tren_ITFL
+
+```
+
+
+## PDRB dengan mempertimbangkan peluruhan laju pertumbuhan (geometric decay)
+
+Melakukan proyeksi total PDRB BUKECAP tahun 2026–2045 memakai pendekatan Bottom-Up (dihitung per sektor lalu dijumlahkan) dengan mempertimbangkan peluruhan laju pertumbuhan (geometric decay).
+
+1. Membaca & Membersihkan Data Historis (2010–2025)
+2. Menghitung Modal Awal Pertumbuhan (CAGR Historis)
+    - Menghitung laju Pertumbuhan Majemuk Tahunan (CAGR) setiap sektor selama 15 tahun terakhir (2010 s.d. 2025):
+      $ \text{CAGR} = \left( \frac{\text{PDRB}_{2025}}{\text{PDRB}_{2010}} \right)^{\frac{1}{15}} - 1 $$
+    - Angka CAGR historis ini menjadi acuan dasar (baseline) untuk menentukan seberapa cepat suatu sektor tumbuh di awal periode proyeksi.
+3. Meracik 4 Skenario Kebijakan Masa Depan berdasarkan kombinasi 3 variabel utama:
+    * **$g_0$ (Pertumbuhan Awal tahun 2026):** Titik awal laju pertumbuhan.
+    * **$g_{\text{term}}$ (Pertumbuhan Jangka Panjang):** Target pertumbuhan minimal saat perekonomian melambat/matang.
+    * **$\lambda$ (*Lambda* / Laju Peluruhan):** Tingkat kecepatan penurunan pertumbuhan dari $g_0$ menuju $g_{\text{term}}$.
+
+| Skenario | $g_0$ (Awal) | $g_{\text{term}}$ (Jangka Panjang) | $\lambda$ (Peluruhan) | Logika Ekonomi |
+| :--- | :--- | :--- | :--- | :--- |
+| **Tanpa Decay (Flat)** | Sama dengan CAGR | Sama dengan CAGR | 0,00 | Ekstrapolasi linier polos (asumsi pertumbuhan konstan selamanya). |
+| **Optimis (Decay Rendah)** | $\text{CAGR} \times 1,05$ | Sektor Jasa tinggi (5,5%), Pertanian rendah (2,5%) | Lambat (1% – 2,5%) | Intervensi berhasil, ekonomi melambat secara sangat halus. |
+| **Moderat (Decay Sedang)** | $\text{CAGR}$ | Sektor Jasa (4,5%), Pertanian (2,0%) | Sedang (2% – 4%) | Tren umum pengembangan wilayah yang wajar. |
+| **Pesimis (Decay Tinggi)** | $\text{CAGR} \times 0,90$ | Sektor Jasa (3,5%), Pertanian (1,5%) | Cepat (3% – 5%) | Ada hambatan eksternal/stagnasi sektor lahan secara cepat. |
+4. Simulasi Proyeksi Sektoral dan Agregasi (Bottom-Up)
+5. Visualisasi 
+
+
+
+```{r, echo = FALSE, warning=FALSE}
+# ==============================================================================
+# Script: Bottom-Up Multi-Scenario Total PDRB Projection (2026–2045)
+# ==============================================================================
+
+
+# 1. Load Data Historis (17 Sektor)
+raw_data <- pdrb_decay
+colnames(raw_data)[1] <- "sektor"
+
+# Bersihkan dan filter baris total
+df_sektor <- raw_data %>%
+  filter(!grepl("Total", sektor, ignore.case = TRUE)) %>%
+  pivot_longer(cols = -sektor, names_to = "tahun", values_to = "pdrb") %>%
+  mutate(tahun = as.numeric(tahun))
+
+# 2. Hitung CAGR Historis Per Sektor (2010 - 2025)
+tahun_awal  <- 2010
+tahun_akhir <- 2025
+n_tahun     <- tahun_akhir - tahun_awal
+horizon     <- 20
+tahun_proj  <- (tahun_akhir + 1):(tahun_akhir + horizon)
+
+sektor_base <- df_sektor %>%
+  group_by(sektor) %>%
+  summarise(
+    pdrb_2010     = pdrb[tahun == tahun_awal],
+    pdrb_2025     = pdrb[tahun == tahun_akhir],
+    cagr_historis = (pdrb_2025 / pdrb_2010)^(1 / n_tahun) - 1,
+    .groups       = "drop"
+  )
+
+# 3. Definisi Aturan Parameter Skenario per Sektor
+# Masing-masing skenario memiliki penyesuaian g0, g_term, dan laju peluruhan (lambda)
+skenario_list <- list(
+  "Tanpa Decay (Flat CAGR)" = function(df) {
+    df %>% mutate(g0 = cagr_historis, g_term = cagr_historis, lambda = 0.00)
+  },
+  "Optimis (Decay Rendah)" = function(df) {
+    df %>% mutate(
+      g0     = cagr_historis * 1.05,
+      g_term = case_when(
+        grepl("Pertanian|Pertambangan", sektor) ~ 0.025,
+        grepl("Industri|Konstruksi", sektor)    ~ 0.035,
+        TRUE                                     ~ 0.055
+      ),
+      lambda = case_when(
+        grepl("Pertanian|Pertambangan", sektor) ~ 0.025,
+        grepl("Industri|Konstruksi", sektor)    ~ 0.015,
+        TRUE                                     ~ 0.010
+      )
+    )
+  },
+  "Moderat (Decay Sedang)" = function(df) {
+    df %>% mutate(
+      g0     = cagr_historis,
+      g_term = case_when(
+        grepl("Pertanian|Pertambangan", sektor) ~ 0.020,
+        grepl("Industri|Konstruksi", sektor)    ~ 0.030,
+        TRUE                                     ~ 0.045
+      ),
+      lambda = case_when(
+        grepl("Pertanian|Pertambangan", sektor) ~ 0.040,
+        grepl("Industri|Konstruksi", sektor)    ~ 0.025,
+        TRUE                                     ~ 0.020
+      )
+    )
+  },
+  "Pesimis (Decay Cepat)" = function(df) {
+    df %>% mutate(
+      g0     = cagr_historis * 0.90,
+      g_term = case_when(
+        grepl("Pertanian|Pertambangan", sektor) ~ 0.015,
+        grepl("Industri|Konstruksi", sektor)    ~ 0.025,
+        TRUE                                     ~ 0.035
+      ),
+      lambda = case_when(
+        grepl("Pertanian|Pertambangan", sektor) ~ 0.050,
+        grepl("Industri|Konstruksi", sektor)    ~ 0.035,
+        TRUE                                     ~ 0.030
+      )
+    )
+  }
+)
+
+# 4. Fungsi Proyeksi Sektoral & Agregasi Menjadi Total PDRB
+hitung_total_skenario <- function(nama_sken, func_sken, df_base, tahun_vec) {
+  df_params <- func_sken(df_base)
+  t_rel     <- seq_along(tahun_vec)
+  
+  # Proyeksikan setiap sektor
+  df_all_sektor <- lapply(1:nrow(df_params), function(i) {
+    row  <- df_params[i, ]
+    g_t  <- row$g_term + (row$g0 - row$g_term) * ((1 - row$lambda)^t_rel)
+    
+    val  <- numeric(length(t_rel))
+    cur  <- row$pdrb_2025
+    for (k in seq_along(t_rel)) {
+      cur    <- cur * (1 + g_t[k])
+      val[k] <- cur
+    }
+    data.frame(tahun = tahun_vec, pdrb = val, sektor = row$sektor)
+  }) %>% bind_rows()
+  
+  # Agregasikan (Sum) 17 Sektor per Tahun
+  df_all_sektor %>%
+    group_by(tahun) %>%
+    summarise(pdrb = sum(pdrb), .groups = "drop") %>%
+    mutate(skenario = nama_sken, tipe = "Proyeksi")
+}
+
+# Jalankan agregasi total untuk ke-4 skenario
+df_total_proyeksi <- bind_rows(lapply(names(skenario_list), function(nm) {
+  hitung_total_skenario(nm, skenario_list[[nm]], sektor_base, tahun_proj)
+}))
+
+# 5. Data Historis Total PDRB
+df_total_historis <- df_sektor %>%
+  group_by(tahun) %>%
+  summarise(pdrb = sum(pdrb), .groups = "drop") %>%
+  mutate(skenario = "Historis", tipe = "Historis")
+
+# 6. Visualisasi Total PDRB Skenario (Bottom-Up) dengan ggplot2
+plot_total_pdrb <- ggplot() +
+  # Garis & Titik Data Historis Total
+  geom_line(
+    data = df_total_historis, 
+    aes(x = tahun, y = pdrb), 
+    color = "#1F2937", 
+    linewidth = 1.2
+  ) +
+  geom_point(
+    data = df_total_historis, 
+    aes(x = tahun, y = pdrb), 
+    color = "#1F2937", 
+    size = 2.5
+  ) +
+  # Garis Skenario Proyeksi
+  geom_line(
+    data = df_total_proyeksi, 
+    aes(x = tahun, y = pdrb, color = skenario, linetype = skenario), 
+    linewidth = 1.1
+  ) +
+  # Ribbon / Fan Shading antara Optimis dan Pesimis
+  geom_ribbon(
+    data = df_total_proyeksi %>%
+      filter(skenario %in% c("Optimis (Decay Rendah)", "Pesimis (Decay Cepat)")) %>%
+      pivot_wider(id_cols = tahun, names_from = skenario, values_from = pdrb),
+    aes(x = tahun, ymin = `Pesimis (Decay Cepat)`, ymax = `Optimis (Decay Rendah)`),
+    fill = "#3B82F6", 
+    alpha = 0.12
+  ) +
+  # Garis Batas Historis
+  geom_vline(xintercept = tahun_akhir, linetype = "dashed", color = "#9CA3AF", linewidth = 0.8) +
+  annotate(
+    "text", x = tahun_akhir - 0.6, y = max(df_total_proyeksi$pdrb) * 0.88, 
+    label = "Batas Data Historis (2025)", angle = 90, color = "#6B7280", size = 3.5
+  ) +
+  # Skala Sumbu X dan Y
+  scale_x_continuous(
+    breaks = seq(tahun_awal, max(tahun_proj), by = 5),
+    minor_breaks = seq(tahun_awal, max(tahun_proj), by = 1)
+  ) +
+  scale_y_continuous(
+    labels = label_comma(prefix = "Rp ", suffix = " T", scale = 1e-3, big.mark = ".")
+  ) +
+  scale_color_manual(
+    values = c(
+      "Tanpa Decay (Flat CAGR)" = "#DC2626",
+      "Optimis (Decay Rendah)"  = "#10B981",
+      "Moderat (Decay Sedang)"  = "#2563EB",
+      "Pesimis (Decay Cepat)"   = "#F59E0B"
+    )
+  ) +
+  scale_linetype_manual(
+    values = c(
+      "Tanpa Decay (Flat CAGR)" = "dotted",
+      "Optimis (Decay Rendah)"  = "solid",
+      "Moderat (Decay Sedang)"  = "solid",
+      "Pesimis (Decay Cepat)"   = "dashed"
+    )
+  ) +
+  labs(
+    title = "Proyeksi Total PDRB ADHK Kabupaten (2026–2045)",
+    subtitle = "Agregasi Bottom-Up dari 17 Lapangan Usaha dengan Pemodelan Skenario & Geometric Decay",
+    x = "Tahun",
+    y = "Total PDRB ADHK (Triliun Rupiah)",
+    color = "Skenario Kebijakan",
+    linetype = "Skenario Kebijakan",
+    caption = "Catatan: Area arsiran biru menunjukkan rentang ketidakpastian antara skenario optimis dan pesimis."
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title       = element_text(face = "bold", size = 14, color = "#111827"),
+    plot.subtitle    = element_text(color = "#4B5563", margin = margin(b = 12)),
+    panel.grid.minor = element_line(color = "#F3F4F6"),
+    panel.grid.major = element_line(color = "#E5E7EB"),
+    legend.position  = "bottom",
+    legend.title     = element_text(face = "bold", size = 10),
+    legend.background = element_rect(fill = "#F9FAFB", color = NA),
+    plot.margin      = margin(15, 15, 15, 15)
+  )
+
+# Tampilkan Chart Total PDRB
+print(plot_total_pdrb)
+
+# 7. Ekspor Tabel Rangkuman 5-Tahunan untuk Dokumen Perencanaan (RPJPD)
+df_tabel_rpjpd <- df_total_proyeksi %>%
+  filter(tahun %in% seq(2025, 2045, by = 5)) %>%
+  pivot_wider(names_from = skenario, values_from = pdrb) %>%
+  mutate(across(where(is.numeric) & !c(tahun), ~ round(.x, 2)))
+
+# 8. Bersihkan data: Hilangkan kolom non-numerik (seperti 'tipe') & format angka
+df_tabel_formatted <- df_tabel_rpjpd %>%
+  select(-any_of("tipe")) %>%                  # Menghapus kolom 'tipe' jika ada
+  rename(Year = tahun) %>%
+  mutate(
+    across(where(is.numeric) & -Year,          # Hanya memproses kolom numerik selain 'Year'
+           ~ format(round(.x, 0), big.mark = ","))
+  )
+
+# 9. Cetak Tabel HTML
+df_tabel_formatted %>%
+  kable(
+    format = "html",
+    caption = "Rangkuman Angka Total PDRB per 5 Tahun (Miliar Rupiah)", # Judul di atas tabel
+    align = c("l", rep("r", ncol(df_tabel_formatted) - 1)),
+    col.names = c("Year", "Tanpa Decay", "Optimis", "Moderat", "Pesimis") # Sesuaikan dengan nama skenario Anda
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = TRUE,
+    position = "center"
+  ) %>%
+  row_spec(0, bold = TRUE, extra_css = "border-top: 2px solid #ccc; border-bottom: 2px solid #ccc;")
+
+
+
 
 ```
