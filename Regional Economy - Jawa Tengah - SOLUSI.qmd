@@ -26,6 +26,9 @@ library(knitr)
 # if (!requireNamespace("kableExtra", quietly = TRUE)) {
 #   install.packages("kableExtra")
 # }
+if (!requireNamespace("kableExtra", quietly = TRUE)) {
+  install.packages("kableExtra", repos = "https://cloud.r-project.org/")
+}
 library(kableExtra)
 
 # Membuat data frame
