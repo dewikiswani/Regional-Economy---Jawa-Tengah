@@ -16,7 +16,6 @@ Untuk mengestimasi dampak ekonomi dari skenario perubahan tutupan lahan spasial 
 
 Mengingat output sektor berbasis lahan dibatasi secara fisik oleh kapasitas tutupan lahannya, perubahan output sektor tersebut (ditransformasikan dari perkalian perubahan luas lahan dengan produktivitas lahan . Untuk menghindari estimasi ganda (overestimation) pada matriks Kebalikan Leontief, status output sektor lahan dijajarkan secara eksogen mengikuti formulasi Mixed I-O (Papadas & Dahl, 1999; Miller & Blair, 2009), sedangkan estimasi PDRB sektor non-lahan dihitung secara terintegrasi.
 
-
 ## Data Input and Reading
 
 Terdapat 11 file data input berformat xlsx yang digunakan, yaitu:
@@ -83,8 +82,6 @@ kable(df, format = "html", escape = FALSE, align = c("c", "l", "l", "l")) %>%
   column_spec(3, width = "20%") %>%
   column_spec(4, width = "20%")
 ```
-    
-
 
 ```{r, echo = FALSE, warning=FALSE, message = FALSE}
 library(dplyr)
@@ -162,132 +159,132 @@ propLuasPesisir <- 0.144
 
 ## Step 1 - Analisa Deskriptif
 
+Analisis deskriptif dilakukan untuk melihat gambaran struktur dan dinamika kondisi perekonomian di wilayah Kabupaten Banyumas, Kabupaten Kebumen, dan Kabupaten Cilacap pada tahun 2025. Tabel Input–Output (IO) BUKECAP 2025 digunakan sebagai dasar analisis untuk mengidentifikasi keterkaitan penggunaan input dan output, baik secara intra-sektoral maupun inter-sektoral. \[kaudran 1\] Tabel ini menunjukkan bagaimana output dari sautu sektor dipergunakan sebagai input sektor lainnya. Selain itu menunjukkan dimensi input dan output sektor, tabel tersebut juga menunjukkan bagaimana keterkaitan sektor dengan input primer seperti kompensasi tenaga kerja, permintaan akhir. Tabel IO menggunakn satuan moneter yakni juta rupiah. Analisis deskriptif dilakukan dengan langkah kerja sebagai berikut:
 
-Analisis deskriptif dilakukan untuk melihat gambaran struktur dan dinamika kondisi perekonomian di wilayah Kabupaten Banyumas, Kabupaten Kebumen, dan Kabupaten Cilacap pada tahun 2025. Tabel Input–Output (IO) BUKECAP 2025 digunakan sebagai dasar analisis untuk mengidentifikasi keterkaitan penggunaan input dan output, baik secara intra-sektoral maupun inter-sektoral. [kaudran 1] Tabel ini menunjukkan bagaimana output dari sautu sektor dipergunakan sebagai input sektor lainnya. Selain itu menunjukkan dimensi input dan output sektor, tabel tersebut juga menunjukkan bagaimana keterkaitan sektor dengan input primer seperti kompensasi tenaga kerja, permintaan akhir. Tabel IO menggunakn satuan moneter yakni juta rupiah.
-Analisis deskriptif dilakukan dengan langkah kerja sebagai berikut:
+1.  Cek terlebih dahulu struktur dari tabel IO. Lihat susunan sektor, amati struktur kuadran nilai tambah dan permintaan akhir, lihat apakah jumlah total input sama dengan output. Langkah verifikasi dilakukan sebagai berikut:
+    -   Verifikasi 1 (Total input antara): Verifikasi dilakukan dengan memastikan kesamaan data pada baris total input antara dengan hasil penghitungan penjumlahan input seluruh sektor di setiap sektornya.
+    -   Verifikasi 2 (Total input primer): Verifikasi dilakukan dengan mengecek penjumlahan yang menyusun total input primer adalah kompensasi tenaga kerja, surplus usaha bruto, dan pajak atas produki
+    -   Verifikasi 3 (Total Input): verifikasi dilakukan dengan mengecek penjumlahan yang menyusun total input adalah jumlah input antara. total impor, dan total input primer
+    -   Verifikasi 4 (Total permintaan antara): verifikasi dilakukan dengan mengecek penjumlahan dari seluruh sektor pada kuadran 1
+    -   Verifikasi 5 (Total permintaan akhir)
+    -   Verifikasi 6 (Total output)
+    -   Verifikasi 7 (Total input dan total output)
+2.  Menambahkan sektor baru pada tabel input-output yang telah tersedia dengan melabeli sektor tersebut dengan nama “Sektor ekonomi lain yang tidak jelas batasannya” dengan memasukan nilai transaksi sebesar 0 juta rupiah. Penambahan tersebut bertujuan untuk mengakomodasi kemungkinan aktivitas ekonomi yang belum memiliki batasan yang jelas untuk dikategorikan ke dalam sektor yang tersedia. Langkah ini dilakukan agar cakupan aktivitas ekonomi di BUKECAP dapat tetap terwakili melalui tabel input output secara komprehensif.
+3.  Hitung matrix Leontief dan jalankan persamaan X=(I-A)-1\*F. Hitung proporsi NTB terhadap Input setiap sektor. Cek apakah jumlah PDRB yang dihitung dengan persamaan di atas sama dengan PDRB yang tercantum pada tabel I-O.
+    -   Penghitungan PDRB menggunakan pendekatan matriks leontief diawali dengan mengubah tabel input output ke dalam bentuk matriks Leontief lalu dikalikan dengan permintaan akhir sehingga nilai nilai total output.
+    -   Hasil yang diperoleh kemudian dikalikan dengan proporsi nilai tambah bruto (NTB) terhadap total input sehingga diperoleh nilai NTB yang bila dijumlahkan untuk seluruh sektor maka diperoleh nilai PDRB.
+    -   Penghitungan PDRB menggunakan pendekatan produksi dilakukan dengan menjumlahkan seluruh nilai tambah bruto yang didapatkan dari penjumlahan langsung komponen transaksi kompensasi tenaga kerja, surplus usaha bruto, dan pajak dikurang subsidi lainnya atas produksi pada tabel input output.
+    -   Tahapan terakhir adalah melakukan validasi kesamaan hasil dari penghitugan kedua PDRB tersebut. Proses validasi tersebut menghasilkan keputusan bahwa komponen PDRB yang digunakan adalah kompensasi tenaga kerja, surplus usaha bruto, dan pajak dikurang subsidi lainnya atas produksi.
+4.  Amati baik-baik struktur sektor yang ada pada tabel I-O. Download PDRB Jawa Tengah, Kebumen, Banyumas dan Cilacap dalam 5-10 tahun terakhir dari situs BPS. Padankan dan klasifikasi ulang daftar sektor yang ada pada Tabel I-O dengan daftar sektor BPS. Selain itu, buat klasifikasi tambahan dengan mengelompokkan sektor menjadi sektor pertanian, kehutanan, perikanan kelautan, industri, pertambangan, jasa dan sektor lain-lain. Sebut saja klasifikasi baru ini sebagai Klasifikasi Sektor Makro (KSM). Hitung rerata pertumbuhan ekonomi tahunan (dalam satuan %) masing-masing sektor dan keseluruhan wilayah pada 5-10 tahun terakhir dengan menggunakan data BPS.
+5.  Hitung Backward dan Forward Linkage untuk semua sektor yang ada pada Tabel I-O. Dengan menggunakan BL dan FL, kelompokkan semua sektor ekonomi dalam menjadi empat kuadran: K1=BL dan FL tinggi; K2=BL tinggi, FL rendah; K3=BL rendah, FL tinggi; K4= BL dan FL rendah. Analisa hasilnya, dan simpulkan sektor-sektor kunci pada wilayah yang diamati. Analisa juga hasilnya jika menggunakan KSM.
+6.  Hitung Output, Income, dan Labour Multiplier dan Import multiplier. Analisa hasilnya pada tingkat sektor dan KSM. Hitung reratanya jika menggunakan KSM. Simpulkan mana sektor strategis pada wilayah yang diamati.
+7.  Gunakan hasil analisa pada nomor #5 dan #6 untuk menyimpulkan struktur ekonomi wilayah. Fokuskan pada sektor berbasis lahan dan coba simpulkan bagaimana kontribusi dan kedudukan sektor-sektor tersebut dalam perekonomian wilayah yang dianalisis.
 
-1. Cek terlebih dahulu struktur dari tabel IO. Lihat susunan sektor, amati struktur kuadran nilai tambah dan permintaan akhir, lihat apakah jumlah total input sama dengan output.  Langkah verifikasi dilakukan sebagai berikut: 
-   - Verifikasi 1 (Total input antara): Verifikasi dilakukan dengan memastikan kesamaan data pada baris total input antara dengan hasil penghitungan penjumlahan input seluruh sektor di setiap sektornya.
-   - Verifikasi 2 (Total input primer): Verifikasi dilakukan dengan mengecek penjumlahan yang menyusun total input primer adalah kompensasi tenaga kerja, surplus usaha bruto, dan pajak atas produki
-   - Verifikasi 3 (Total Input): verifikasi dilakukan dengan mengecek penjumlahan yang menyusun total input adalah jumlah input antara. total impor, dan total input primer
-   - Verifikasi 4 (Total permintaan antara): verifikasi dilakukan dengan mengecek penjumlahan dari seluruh sektor pada kuadran 1
-   - Verifikasi 5 (Total permintaan akhir) 
-   - Verifikasi 6 (Total output) 
-   - Verifikasi 7 (Total input dan total output) 
-2. Menambahkan sektor baru pada tabel input-output yang telah tersedia dengan melabeli sektor tersebut dengan nama “Sektor ekonomi lain yang tidak jelas batasannya” dengan memasukan nilai transaksi sebesar 0 juta rupiah. Penambahan tersebut bertujuan untuk mengakomodasi kemungkinan aktivitas ekonomi yang belum memiliki batasan yang jelas untuk dikategorikan ke dalam sektor yang tersedia. Langkah ini dilakukan agar cakupan aktivitas ekonomi di BUKECAP dapat tetap terwakili melalui tabel input output secara komprehensif. 
-3. Hitung matrix Leontief dan jalankan persamaan X=(I-A)-1*F. Hitung proporsi NTB terhadap Input setiap sektor. Cek apakah jumlah PDRB yang dihitung dengan persamaan di atas sama dengan PDRB yang tercantum pada tabel I-O.
-   - Penghitungan PDRB menggunakan pendekatan matriks leontief diawali dengan mengubah tabel input output ke dalam bentuk matriks Leontief lalu dikalikan dengan permintaan akhir sehingga nilai nilai total output. 
-   - Hasil yang diperoleh kemudian dikalikan dengan proporsi nilai tambah bruto (NTB) terhadap total input sehingga diperoleh nilai NTB yang bila dijumlahkan untuk seluruh sektor maka diperoleh nilai PDRB. 
-   - Penghitungan PDRB menggunakan pendekatan produksi dilakukan dengan menjumlahkan seluruh nilai tambah bruto yang didapatkan dari penjumlahan langsung komponen transaksi kompensasi tenaga kerja, surplus usaha bruto, dan pajak dikurang subsidi lainnya atas produksi pada tabel input output. 
-   - Tahapan terakhir adalah melakukan validasi kesamaan hasil dari penghitugan kedua PDRB tersebut. Proses validasi tersebut menghasilkan keputusan bahwa komponen PDRB yang digunakan adalah kompensasi tenaga kerja, surplus usaha bruto, dan pajak dikurang subsidi lainnya atas produksi.
-4. Amati baik-baik struktur sektor yang ada pada tabel I-O. Download PDRB Jawa Tengah, Kebumen, Banyumas dan Cilacap dalam 5-10 tahun terakhir dari situs BPS. Padankan dan klasifikasi ulang daftar sektor yang ada pada Tabel I-O dengan daftar sektor BPS. Selain itu, buat klasifikasi tambahan dengan mengelompokkan sektor menjadi sektor pertanian, kehutanan, perikanan kelautan, industri, pertambangan, jasa dan sektor lain-lain. Sebut saja klasifikasi baru ini sebagai Klasifikasi Sektor Makro (KSM). Hitung rerata pertumbuhan ekonomi tahunan (dalam satuan %) masing-masing sektor dan keseluruhan wilayah pada 5-10 tahun terakhir dengan menggunakan data BPS.
-5. Hitung Backward dan Forward Linkage untuk semua sektor yang ada pada Tabel I-O. Dengan menggunakan BL dan FL, kelompokkan semua sektor ekonomi dalam menjadi empat kuadran: K1=BL dan FL tinggi; K2=BL tinggi, FL rendah; K3=BL rendah, FL tinggi; K4= BL dan FL rendah. Analisa hasilnya, dan simpulkan sektor-sektor kunci pada wilayah yang diamati. Analisa juga hasilnya jika menggunakan KSM.
-6. Hitung Output, Income, dan Labour Multiplier dan Import multiplier. Analisa hasilnya pada tingkat sektor dan KSM. Hitung reratanya jika menggunakan KSM. Simpulkan mana sektor strategis pada wilayah yang diamati.
-7. Gunakan hasil analisa pada nomor #5 dan #6 untuk menyimpulkan struktur ekonomi wilayah. Fokuskan pada sektor berbasis lahan dan coba simpulkan bagaimana kontribusi dan kedudukan sektor-sektor tersebut dalam perekonomian wilayah yang dianalisis.
+Catatan untuk Step 1-Analisis deskritif:
 
-Catatan untuk Step 1-Analisis deskritif: 
-
- - Sektor yang memiliki multiplier yang tinggi maka keterkaitan sektornya tinggi
- - Multiplier yang digunakan adalah simple multiplier dalam rumus yaitu "effect"
- - Dektor strategis 
- - Jika sektor yang simulasikan bukan sektor strategis maka akan kecil dampaknya 
- - Bukan hanya dampak ekonomi tapi dampak lingkungan juga yang diperhatiakn
- - Sektor lahan: sektor lahan yang dilihat karena intervensi yang bisa dilakukan adalah di sektor yang memiliki lahan
- - PDRB yang digunakan laju pertumbuhan 10 tahun ke belakang untuk PDRB ADHK
- - PDRB Tabel IO terbangun dari NTB tanpa pajak atas produk
- - Grafik multiplier yang digunakan untuk 66 sektor untuk simple multiplier : dan di jateng di dapat sektor lahannya memiliki multiplier yang relative kecil
+-   Sektor yang memiliki multiplier yang tinggi maka keterkaitan sektornya tinggi
+-   Multiplier yang digunakan adalah simple multiplier dalam rumus yaitu "effect"
+-   Dektor strategis
+-   Jika sektor yang simulasikan bukan sektor strategis maka akan kecil dampaknya
+-   Bukan hanya dampak ekonomi tapi dampak lingkungan juga yang diperhatiakn
+-   Sektor lahan: sektor lahan yang dilihat karena intervensi yang bisa dilakukan adalah di sektor yang memiliki lahan
+-   PDRB yang digunakan laju pertumbuhan 10 tahun ke belakang untuk PDRB ADHK
+-   PDRB Tabel IO terbangun dari NTB tanpa pajak atas produk
+-   Grafik multiplier yang digunakan untuk 66 sektor untuk simple multiplier : dan di jateng di dapat sektor lahannya memiliki multiplier yang relative kecil
 
 ## Step 2 - Perhitungan LR dan Land Productivity Coefficient
 
-1. Membuat land distribution coeff  matrix (dibuat tania dulu untuk BUKECAP)
-2. 26 kelas landcover BUKECAP, request tim spasial untuk dapat luas administrasi BUKECAP 
+1.  Membuat land distribution coeff matrix (dibuat tania dulu untuk BUKECAP)
+2.  26 kelas landcover BUKECAP, request tim spasial untuk dapat luas administrasi BUKECAP
 
 Catatan Step 2:
 
- - tahapan ini untuk Jateng masih dikerjakan Tania
- - tahapan sebelum menghitung land distribution matrix ada perhitungan land distribution coefficient (LDC) 
- - LDC dibangun dari sheet asumsi yaitu % luasan untuk perhutanan sosisal, %zona produksi utama, % total zona produksi, dan %zona lindung
- - nilai persentase ini didapat dari pivot hasil data tim spasial -> request untuk meminta area planning unit ke tim sapasial untuk bisa develop pivot asumsi ini
- - ex angka 1.1 % (0.01)di zona PS untuk hutan lahan kering primer diasumsikan terdiri dari sektor 8 (kopi, teh, kakao) dan sektor 9 [Rempah, tanaman aromatik, dan tanaman obat] -> asumsi yang dibangun bisa di bagi 2 langsung yaitu 0.005 atau bisa juga tidak dibagi 2 sama percis, yang penting ada basis landasan asumsinya
- - Sebaiknya LDC ini bisa di bangun diawal tim regEco kemudian di revisi dari hasil temuan tim profit untuk pengkayaan informasi sebaran land cover ada di sektor mana saja 
+-   tahapan ini untuk Jateng masih dikerjakan Tania
+-   tahapan sebelum menghitung land distribution matrix ada perhitungan land distribution coefficient (LDC)
+-   LDC dibangun dari sheet asumsi yaitu % luasan untuk perhutanan sosisal, %zona produksi utama, % total zona produksi, dan %zona lindung
+-   nilai persentase ini didapat dari pivot hasil data tim spasial -\> request untuk meminta area planning unit ke tim sapasial untuk bisa develop pivot asumsi ini
+-   ex angka 1.1 % (0.01)di zona PS untuk hutan lahan kering primer diasumsikan terdiri dari sektor 8 (kopi, teh, kakao) dan sektor 9 \[Rempah, tanaman aromatik, dan tanaman obat\] -\> asumsi yang dibangun bisa di bagi 2 langsung yaitu 0.005 atau bisa juga tidak dibagi 2 sama percis, yang penting ada basis landasan asumsinya
+-   Sebaiknya LDC ini bisa di bangun diawal tim regEco kemudian di revisi dari hasil temuan tim profit untuk pengkayaan informasi sebaran land cover ada di sektor mana saja
 
 ## Step 3 - Hitung PDRB BAU dan PDRB LAS
 
 Output step ini adalah grafik PDRB BAU vs PDRB LAS untuk tahun simulasi 2025 - 2045 selama 20 tahun. ada 3 tipe scenario yang diterapkan yang termasuk ke dalam Step 4 (uraian ada dalam Step 4). Output Step 3 adalah nilai PDRB:
 
-- BAU
-- IMLaS1: LAS tipe 1
-- IMLaS2: LAS tipe 1 + tipe 2
-- IMLaS3: LAS tipe 1 + tipe 2 + tipe 3
+-   BAU
+-   IMLaS1: LAS tipe 1
+-   IMLaS2: LAS tipe 1 + tipe 2
+-   IMLaS3: LAS tipe 1 + tipe 2 + tipe 3
 
 Tahapan perhitungan
 
-1. Berangkat dari Persamaan 
-   - $X = (I-A)^{-1} \times FD_i$
-   - $FD_i$ terdiri dari sektor constrained dan sektor unconstrained
-   - Dimana nilai PDRB didapat dari $PDRB = X \space \times \frac {NTB} {total \space output}$
-2. Menghitung PDRB untuk Unconstrained Sector (US)
-   - US adalah sektor yang bisa tumbuh tanpa keterbatasan lahan, contohnya karena bergantung pada teknologi, pasar atau lainnya 
-   - untuk menghitung pertumbuhan US digunakan rataan PDRB per sektor selama 10 tahun ke belakang (gunakan ADHK)
-   - US untuk BUKECAP = 49 sektor (unconstrained = 1)
-   - Data history 10 tahun kebelakang untuk PRDB ADHK BUKECAP adalah
-     a. pertumbuhaan tiap sektor nya di BUKECAP tidak boleh > pertumbuhan tiap sektor di Jawa Tengah dan tidak boleh juga > pertumbuhan tiap sektornya di Indonesia
-     b. Rataan laju pertumbuhan per sektor untuk 17 sektor utama pada data PDRB ADHK selama 10 tahun kebelakang
-     c. Misal merujuk nilai sektor C (industri pengolahan) = 1.19 maka untuk seluruh sektor BUKECAP yang tergolong ke dalam sektor C akan mengalami pertumbuhan sebesar 1.19% per tahun (flat) yaitu untuk sektor 19 hingga sektor 42 dalam Tabel IO BUKECAP -> seharusnya tidak konstan setiap tahun, perlu diterapkan algoritma seperti script average with decay branch AE
-     d. FD 2026 untuk UC sektor 19 hingga sektor 42 = $FD_{2025} \times (100 +  \text{pertumbuhan tiap sektor})\%) = FD_{2025} \times (100 + 1.19)\%)$
-     e. Hitung  $X_{i} = Matrix \space Leontif \space ^{-1}_{tahun \space dasar} \times FD_i$
-     f. Hitung $PDRB = X \space \times \frac {NTB} {total \space output}$ per tahun
-3. Menghitung PDRB untuk Constrained Sector (CS)
-   - CS adalah sektor yang dipengaruhi ketersediaan lahan, ada batasan lahan yang dimiliki di wilayah tersebut
-   - perhitungan PRDB CS menggunakan tutupan lahan yang dihitung oleh tim spasial
-   - CS untuk BUKECAP = 14 sektor (constrained = 1)
-   - Tahapannya:
-     a. Land Distribution Matrix (LDM)
-        - Luasan lahan untuk masing-masing constrained sector
-        - $LDM = LDC \times \text {matrix diagonal area tiap land cover}$
-        - $\text {matrix diagonal area tiap land cover} =A_{tahun \space ke-i}$
-        - tersedia data area land cover per 5 tahunan $A_{tahun \space 2025}, A_{tahun \space 2030}, A_{tahun \space 2035}, A_{tahun \space 2040}, A_{tahun \space 2045}$
-        - dilakukan perhitungan untuk land cover per tahun dengan metode CAGR (Compound Annual Growth Rate) -> data input R yang bernama BAU_lahan.xlxs
-      b. Land Req Coefficient (LRC)
-          - dari LRC dapat dilihat sektor yang paling "haus" lahan, produktivitasnya kecil karena butuh ekspansi lahan besar
-          - $LRC = \frac {A}{X} \approx \frac {A}{FD}$
-          - LRC satuannya ha/Rp: interpretasi: berapa luasan lahan yang dibutuhkan untuk menghasilkan output
-      c. Land Productivity Coefficient (LPC)
-          - $LPC = \frac {1}{LRC} = \frac {X}{A}\approx \frac {FD}{A}$
-          - LPC satuannya RP/ha: interpretasi: seberapa output yang dihasilkan untuk setiap 1 hektare lahan
-      d. PDRB tahun simulasi (per tahun) untuk 2030 - 2045
-          - $FD_{i} = LPC_{i} \times A_{i}$
-          - $X_{i} = Matrix \space Leontif \space ^{-1}_{tahun \space dasar} \times FD_i$
-          - $PDRB_{i} = X_{i} \space \times \frac {NTB_{tahun \space dasar}} {total \space output_{tahun \space dasar}}$
-4. Mendapatkan PDRB gabungan antara US dan CS 
-   - Akan ada 21 kolom PDRB -> 2025 - 2045 untuk gabungan antara US dan CS
-   - Buat Grafik PDRB BAU vs PDRB LAS untuk tahun simulasi 2025 - 2045 per tahun selama 21 tahun simulasi
+1.  Berangkat dari Persamaan
+    -   $X = (I-A)^{-1} \times FD_i$
+    -   $FD_i$ terdiri dari sektor constrained dan sektor unconstrained
+    -   Dimana nilai PDRB didapat dari $PDRB = X \space \times \frac {NTB} {total \space output}$
+2.  Menghitung PDRB untuk Unconstrained Sector (US)
+    -   US adalah sektor yang bisa tumbuh tanpa keterbatasan lahan, contohnya karena bergantung pada teknologi, pasar atau lainnya
+    -   untuk menghitung pertumbuhan US digunakan rataan PDRB per sektor selama 10 tahun ke belakang (gunakan ADHK)
+    -   US untuk BUKECAP = 49 sektor (unconstrained = 1)
+    -   Data history 10 tahun kebelakang untuk PRDB ADHK BUKECAP adalah
+        a.  pertumbuhaan tiap sektor nya di BUKECAP tidak boleh \> pertumbuhan tiap sektor di Jawa Tengah dan tidak boleh juga \> pertumbuhan tiap sektornya di Indonesia
+        b.  Rataan laju pertumbuhan per sektor untuk 17 sektor utama pada data PDRB ADHK selama 10 tahun kebelakang
+        c.  Misal merujuk nilai sektor C (industri pengolahan) = 1.19 maka untuk seluruh sektor BUKECAP yang tergolong ke dalam sektor C akan mengalami pertumbuhan sebesar 1.19% per tahun (flat) yaitu untuk sektor 19 hingga sektor 42 dalam Tabel IO BUKECAP -\> seharusnya tidak konstan setiap tahun, perlu diterapkan algoritma seperti script average with decay branch AE
+        d.  FD 2026 untuk UC sektor 19 hingga sektor 42 = $FD_{2025} \times (100 +  \text{pertumbuhan tiap sektor})\%) = FD_{2025} \times (100 + 1.19)\%)$
+        e.  Hitung $X_{i} = Matrix \space Leontif \space ^{-1}_{tahun \space dasar} \times FD_i$
+        f.  Hitung $PDRB = X \space \times \frac {NTB} {total \space output}$ per tahun
+3.  Menghitung PDRB untuk Constrained Sector (CS)
+    -   CS adalah sektor yang dipengaruhi ketersediaan lahan, ada batasan lahan yang dimiliki di wilayah tersebut
+    -   perhitungan PRDB CS menggunakan tutupan lahan yang dihitung oleh tim spasial
+    -   CS untuk BUKECAP = 14 sektor (constrained = 1)
+    -   Tahapannya:
+        a.  Land Distribution Matrix (LDM)
+            -   Luasan lahan untuk masing-masing constrained sector
+            -   $LDM = LDC \times \text {matrix diagonal area tiap land cover}$
+            -   $\text {matrix diagonal area tiap land cover} =A_{tahun \space ke-i}$
+            -   tersedia data area land cover per 5 tahunan $A_{tahun \space 2025}, A_{tahun \space 2030}, A_{tahun \space 2035}, A_{tahun \space 2040}, A_{tahun \space 2045}$
+            -   dilakukan perhitungan untuk land cover per tahun dengan metode CAGR (Compound Annual Growth Rate) -\> data input R yang bernama BAU_lahan.xlxs
+        b.  Land Req Coefficient (LRC)
+            -   dari LRC dapat dilihat sektor yang paling "haus" lahan, produktivitasnya kecil karena butuh ekspansi lahan besar
+            -   $LRC = \frac {A}{X} \approx \frac {A}{FD}$
+            -   LRC satuannya ha/Rp: interpretasi: berapa luasan lahan yang dibutuhkan untuk menghasilkan output
+        c.  Land Productivity Coefficient (LPC)
+            -   $LPC = \frac {1}{LRC} = \frac {X}{A}\approx \frac {FD}{A}$
+            -   LPC satuannya RP/ha: interpretasi: seberapa output yang dihasilkan untuk setiap 1 hektare lahan
+        d.  PDRB tahun simulasi (per tahun) untuk 2030 - 2045
+            -   $FD_{i} = LPC_{i} \times A_{i}$
+            -   $X_{i} = Matrix \space Leontif \space ^{-1}_{tahun \space dasar} \times FD_i$
+            -   $PDRB_{i} = X_{i} \space \times \frac {NTB_{tahun \space dasar}} {total \space output_{tahun \space dasar}}$
+4.  Mendapatkan PDRB gabungan antara US dan CS
+    -   Akan ada 21 kolom PDRB -\> 2025 - 2045 untuk gabungan antara US dan CS
+    -   Buat Grafik PDRB BAU vs PDRB LAS untuk tahun simulasi 2025 - 2045 per tahun selama 21 tahun simulasi
 
-## Step 4 - Skenario dan Simulasi 
+## Step 4 - Skenario dan Simulasi
+
 Uraian Skenario:
 
-1. Skenario tipe 1 = Melihat dampak perubahan lahan langusng thp total output sebuah sektor, murni memasukan luasan tutupan lahan hasil simulasi
-2. Skenario tipe 2 = merubah angka land requierement coef untuk 14 constrained sector berdasarkan asumsi:
-   - asumsi 1: peningkatan produktivitas -> data dari tim profit (GAP)
-   - asumsi 2: perbaikan rantai pasar: harga yang lebih tinggi utk kualitas premium, atau cost lebih rendah utk produksi
-   - asumsi 3: pembayaran jasa lingkungan yang dikenakan pada sektor tertentu
-3. Skenario tipe 3 (hilirisasi) = berhubungan dengan bangunan; merubah proporsi antara total input antara dengan total permintaan akhir => konsep = ekspor dikurangi dan dimasukkan ke matriks permintaaa antara. Skenario tipe 4 = mengubah leontif matrix dengan memasukkanng  skenario yang mengubah hubungan antar sektor; pada matriks leontif permintaa antara tapi bukan dari nilai ekspor, mengharuskan RAS untuk menyeimbangkan table IO. Kedua tipe scenario ini digabungkan menjadi scenario 3:
-    a. contoh skenario cold chain, semula perikanan langsung ke perdagangan atau langsung ke sektor makanan atau sektor ekspor-> namun dengan skenario ini diterapkan tahapan adanya jasa cold chain (perikanan > cold chain -> perdagangan, sektor makanan)
-    b. alur perhitungan:
-       - berawal dari Nilai akhir yang ingin di dapat yaitu $PDRB_{LAS 1+2+3} = Total Output_{LAS 1+2+3}\times NTBPropotion_{historis 2025}$
-       - Dimana $Total Output_{LAS 1+2+3} = LeontifInverse_{scenario_3} \times Final Demand_{LAs1+2}$
-       - dimana $LeontifInverse_{scenario_3} = (I-A)^{-1}=(I-\frac{Z}{X})^{-1}$
-       - dimana $Z = \text { dari Z hasil intervensi scenario 3} $ dan $X = \text {historis} X_{2025} $
-    c. Untuk BUKECAP menerapkan skenario intervensi pada komposisi Export yang dirubah:
-        - Dari Sektor Padi ke Sektor 24, 25, 26
-        - Dari Sektor Kelapa dan tanaman penghasil minyak ke Sektor 24, 25, 26
-        - Dari Sektor Kopi, Teh, Kakao ke Sektor 22, 24, 25
-        - Dari Sektor Karet dan tanaman tahunan lainnya ke Sektor 24, 25
-        - Dari Sektor Peternakan dan hasilnya ke Sektor 24, 25
-   
+1.  Skenario tipe 1 = Melihat dampak perubahan lahan langusng thp total output sebuah sektor, murni memasukan luasan tutupan lahan hasil simulasi
+2.  Skenario tipe 2 = merubah angka land requierement coef untuk 14 constrained sector berdasarkan asumsi:
+    -   asumsi 1: peningkatan produktivitas -\> data dari tim profit (GAP)
+    -   asumsi 2: perbaikan rantai pasar: harga yang lebih tinggi utk kualitas premium, atau cost lebih rendah utk produksi
+    -   asumsi 3: pembayaran jasa lingkungan yang dikenakan pada sektor tertentu
+3.  Skenario tipe 3 (hilirisasi) = berhubungan dengan bangunan; merubah proporsi antara total input antara dengan total permintaan akhir =\> konsep = ekspor dikurangi dan dimasukkan ke matriks permintaaa antara. Skenario tipe 4 = mengubah leontif matrix dengan memasukkanng skenario yang mengubah hubungan antar sektor; pada matriks leontif permintaa antara tapi bukan dari nilai ekspor, mengharuskan RAS untuk menyeimbangkan table IO. Kedua tipe scenario ini digabungkan menjadi scenario 3:
+    a.  contoh skenario cold chain, semula perikanan langsung ke perdagangan atau langsung ke sektor makanan atau sektor ekspor-\> namun dengan skenario ini diterapkan tahapan adanya jasa cold chain (perikanan \> cold chain -\> perdagangan, sektor makanan)
+    b.  alur perhitungan:
+        -   berawal dari Nilai akhir yang ingin di dapat yaitu $PDRB_{LAS 1+2+3} = Total Output_{LAS 1+2+3}\times NTBPropotion_{historis 2025}$
+        -   Dimana $Total Output_{LAS 1+2+3} = LeontifInverse_{scenario_3} \times Final Demand_{LAs1+2}$
+        -   dimana $LeontifInverse_{scenario_3} = (I-A)^{-1}=(I-\frac{Z}{X})^{-1}$
+        -   dimana \$Z = \text { dari Z hasil intervensi scenario 3} \$ dan \$X = \text {historis} X\_{2025} \$
+    c.  Untuk BUKECAP menerapkan skenario intervensi pada komposisi Export yang dirubah:
+        -   Dari Sektor Padi ke Sektor 24, 25, 26
+        -   Dari Sektor Kelapa dan tanaman penghasil minyak ke Sektor 24, 25, 26
+        -   Dari Sektor Kopi, Teh, Kakao ke Sektor 22, 24, 25
+        -   Dari Sektor Karet dan tanaman tahunan lainnya ke Sektor 24, 25
+        -   Dari Sektor Peternakan dan hasilnya ke Sektor 24, 25
 
 ## Output - Indikator Makro yang akan dituliskan di dokumen
-1. Pengembangan Skenario Ekonomi Regional
+
+1.  Pengembangan Skenario Ekonomi Regional
+
 ```{r tabel-skenario, echo=FALSE, message=FALSE, warning=FALSE}
 
 df_skenario <- data.frame(
@@ -325,33 +322,29 @@ kable(df_skenario, format = "html", escape = FALSE, align = c("l", "l", "l")) %>
   column_spec(3, width = "40%")
 ```
 
-
-2. Proyeksi PDRB
-   - dari tahun 2025:2045 dan untuk 4 scenario yang ada
-3. Proyeksi Pendapatan per kapita
-   - $\frac{\frac{\text {sum (kompensasi tenaga kerja)}_{2025}}{\text{sum (PDRB)}_{2025}}\times \text{Hasil proyeksi PDRB }}{\text{populasi penduduk 3 kab per tahun}}$
-   - data populasi per tahun didapat dari dokumen ini: proyeksi-penduduk-kabupaten-kota--provinsi-jawa-tengah-2020---2035.pdf
-4. Proyeksi Pendapatan per kapita masyarakat pesisir
-   - didapat prakiraan luas area zona pesisir BUKECAP sekitar 13.2 - 15.6% maka ditetapkan nilai konstanta pengali 14.4%
-   - seharusnya dicari dari jumlah penduduk yang berada di desa pesisir BUKECAP, namun untuk KP 28 Agustus belum memungkinkan mendapatkan nilai tersebut (karena waktu), maka di dekati denganti dengan proporsi luasan area pesisir
-   - $\text{proporsi luasan area pesisir di kawasan BUKECAP}\times \text{populasi penduduk 3 kabupaten }\times \text{Hasil Proyeksi pendapatan per kapita BUKECAP}$
-5. Proyeksi Keuntungan Usaha
-   - $\frac{\text {sum (surplus usaha bruto)}_{2025}}{\text{sum (PDRB)}_{2025}}\times \text{Hasil proyeksi PDRB }$
-6. Proyeksi Serapan Tenaga Kerja
-   - hasil nilai untuk tahun 2025:2045
-   - serapan TK untuk 2025 didapat dari jumlah estimasi TK tahun 2025 -> digunakan sebagai titik awal untuk seluruh skenario
-   - kemudian untuk tahun simulasinya (2026:2045) menggunakan rumusan berikut (berlaku untuk seluruh skenario)
-   - nilai labor multiplier untuk seluruh skenario dan semua tahun sama -> didapat dari rataan labor multiplier 2025
-   - $\text{Serapan TK}_t = \text{[(Proyeksi PDRB}_t - \text{Proyeksi PDRB}_{t-1}) \times \text{ rataan labor multiplier}_{2025}] + \text{TK}_{t-1}$
-
-7. Keterkaitan Sektor Darat dengan sektor lainnya
-   - Merujuk pada nilai rataan ITFL diseluruh sektor lahan terhadap 66 sektor yang ada 
-   - akan ada 2 grafik yang dikeluarkan
-       - BAU = rataan ITFL sektor lahan terhadap 66 sektor ->didapat dari proses pehitungan linkage 
-       - IMLaS 3 = skenario yang mengintervensi leontifinvers -> rataan ITFL sektor lahan thd 66 sektor dari setiap tahun (2025:2045) 
-8. Proyeksi Intensitas Emisi (ton CO2/miliar rupiah) -> (perlu menggunakan data proyeksi PDRB)
-
-
+2.  Proyeksi PDRB
+    -   dari tahun 2025:2045 dan untuk 4 scenario yang ada
+3.  Proyeksi Pendapatan per kapita
+    -   $\frac{\frac{\text {sum (kompensasi tenaga kerja)}_{2025}}{\text{sum (PDRB)}_{2025}}\times \text{Hasil proyeksi PDRB }}{\text{populasi penduduk 3 kab per tahun}}$
+    -   data populasi per tahun didapat dari dokumen ini: proyeksi-penduduk-kabupaten-kota--provinsi-jawa-tengah-2020---2035.pdf
+4.  Proyeksi Pendapatan per kapita masyarakat pesisir
+    -   didapat prakiraan luas area zona pesisir BUKECAP sekitar 13.2 - 15.6% maka ditetapkan nilai konstanta pengali 14.4%
+    -   seharusnya dicari dari jumlah penduduk yang berada di desa pesisir BUKECAP, namun untuk KP 28 Agustus belum memungkinkan mendapatkan nilai tersebut (karena waktu), maka di dekati denganti dengan proporsi luasan area pesisir
+    -   $\text{proporsi luasan area pesisir di kawasan BUKECAP}\times \text{populasi penduduk 3 kabupaten }\times \text{Hasil Proyeksi pendapatan per kapita BUKECAP}$
+5.  Proyeksi Keuntungan Usaha
+    -   $\frac{\text {sum (surplus usaha bruto)}_{2025}}{\text{sum (PDRB)}_{2025}}\times \text{Hasil proyeksi PDRB }$
+6.  Proyeksi Serapan Tenaga Kerja
+    -   hasil nilai untuk tahun 2025:2045
+    -   serapan TK untuk 2025 didapat dari jumlah estimasi TK tahun 2025 -\> digunakan sebagai titik awal untuk seluruh skenario
+    -   kemudian untuk tahun simulasinya (2026:2045) menggunakan rumusan berikut (berlaku untuk seluruh skenario)
+    -   nilai labor multiplier untuk seluruh skenario dan semua tahun sama -\> didapat dari rataan labor multiplier 2025
+    -   $\text{Serapan TK}_t = \text{[(Proyeksi PDRB}_t - \text{Proyeksi PDRB}_{t-1}) \times \text{ rataan labor multiplier}_{2025}] + \text{TK}_{t-1}$
+7.  Keterkaitan Sektor Darat dengan sektor lainnya
+    -   Merujuk pada nilai rataan ITFL diseluruh sektor lahan terhadap 66 sektor yang ada
+    -   akan ada 2 grafik yang dikeluarkan
+        -   BAU = rataan ITFL sektor lahan terhadap 66 sektor -\>didapat dari proses pehitungan linkage
+        -   IMLaS 3 = skenario yang mengintervensi leontifinvers -\> rataan ITFL sektor lahan thd 66 sektor dari setiap tahun (2025:2045)
+8.  Proyeksi Intensitas Emisi (ton CO2/miliar rupiah) -\> (perlu menggunakan data proyeksi PDRB)
 
 ```{r, echo = FALSE, warning=FALSE}
 # pembacaan matrix A
@@ -433,11 +426,9 @@ Klasifikasi sektor dalam diagram dilakukan berdasarkan Indeks Daya Penyebaran (b
 
 Hasil analisis backward dan forward linkage di BUKECAP tahun 2025 menunjukkan bahwa sektor yang berada pada Kuadran I, yaitu sektor dengan nilai backward linkage dan forward linkage di atas 1, memiliki keterkaitan antarsektor yang kuat baik ke belakang maupun ke depan. Sektor-sektor tersebut memiliki peran strategis dalam struktur perekonomian karena peningkatan aktivitasnya berpotensi meningkatkan permintaan terhadap input dari sektor lain sekaligus meningkatkan ketersediaan output yang digunakan sebagai input oleh sektor lainnya. Sektor yang termasuk dalam Kuadran I di BUKECAP antara lain X35, X22, X11, X33, dan X49.
 
-Kuadran II menunjukkan sektor dengan backward linkage di atas 1 dan forward linkage di bawah 1. Sektor dalam kelompok ini relatif kuat dalam menarik input dari sektor lainnya. Dengan demikian, peningkatan permintaan akhir terhadap sektor tersebut berpotensi mendorong peningkatan aktivitas pada sektor-sektor yang menjadi pemasok inputnya.
-Kuadran III menunjukkan sektor dengan backward linkage di bawah 1 dan forward linkage di atas 1. Sektor dalam kelompok ini memiliki peran relatif penting sebagai penyedia output yang digunakan sebagai input oleh sektor lainnya. Oleh karena itu, perubahan aktivitas pada sektor-sektor tersebut berpotensi memengaruhi keberlangsungan aktivitas sektor hilir yang menggunakan outputnya sebagai input.
+Kuadran II menunjukkan sektor dengan backward linkage di atas 1 dan forward linkage di bawah 1. Sektor dalam kelompok ini relatif kuat dalam menarik input dari sektor lainnya. Dengan demikian, peningkatan permintaan akhir terhadap sektor tersebut berpotensi mendorong peningkatan aktivitas pada sektor-sektor yang menjadi pemasok inputnya. Kuadran III menunjukkan sektor dengan backward linkage di bawah 1 dan forward linkage di atas 1. Sektor dalam kelompok ini memiliki peran relatif penting sebagai penyedia output yang digunakan sebagai input oleh sektor lainnya. Oleh karena itu, perubahan aktivitas pada sektor-sektor tersebut berpotensi memengaruhi keberlangsungan aktivitas sektor hilir yang menggunakan outputnya sebagai input.
 
 Sementara itu, Kuadran IV menunjukkan sektor dengan backward linkage dan forward linkage di bawah 1. Hal ini menunjukkan bahwa keterkaitan sektor tersebut, baik sebagai pengguna input maupun sebagai penyedia output bagi sektor lainnya, relatif berada di bawah rata-rata. Dengan demikian, perubahan aktivitas pada sektor-sektor dalam kuadran ini cenderung memiliki efek keterkaitan antarsektor yang relatif lebih terbatas.
-
 
 ```{r, echo = FALSE, warning=FALSE}
 # ==============================================================================
@@ -542,12 +533,12 @@ p_linkagePendek
 ```
 
 ## Multiplier Analysis
+
 Analisis multiplier digunakan untuk mengetahui besarnya dampak ekonomi yang ditimbulkan oleh perubahan permintaan akhir pada suatu sektor terhadap perekonomian secara keseluruhan. Dampak ekonomi yang dianalisis meliputi output, tenaga kerja, pendapatan, dan kebutuhan impor.
 
 Output multiplier menunjukkan besarnya perubahan total output seluruh sektor yang ditimbulkan oleh adanya perubahan permintaan akhir pada suatu sektor. Hasil analisis output multiplier di wilayah BUKECAP tahun 2025 menunjukkan bahwa sektor industri barang galian bukan logam memiliki nilai output multiplier tertinggi, diikuti oleh sektor ketenagalistrikan, angkutan perairan, angkutan udara, dan industri logam dasar. Sektor industri barang galian bukan logam memiliki nilai output multiplier sebesar 0,2881. Artinya, setiap peningkatan permintaan akhir sebesar Rp1 juta pada sektor tersebut akan mendorong peningkatan output perekonomian secara keseluruhan sebesar sekitar Rp288 ribu melalui keterkaitan antarsektor.
 
 Dari 15 sektor dengan nilai output multiplier tertinggi, belum terdapat sektor berbasis lahan yang masuk dalam kelompok tersebut. Hal ini menunjukkan bahwa, berdasarkan struktur keterkaitan input-output BUKECAP tahun 2025, sektor berbasis lahan belum menjadi sektor yang memiliki efek pengganda output paling besar dibandingkan sektor-sektor lainnya.
-
 
 ```{r, echo = FALSE, warning=FALSE}
 # ==============================================================================
@@ -785,8 +776,6 @@ Analisis income effect (efek pendapatan) digunakan untuk mengetahui besarnya dam
 
 Dari 15 sektor dengan nilai income effect tertinggi, belum terdapat sektor berbasis lahan. Kelompok sektor dengan efek pendapatan tertinggi masih didominasi oleh sektor jasa, pemerintahan, keuangan, perdagangan, dan aktivitas penunjang ekonomi. Hal ini menunjukkan bahwa berdasarkan struktur perekonomian BUKECAP tahun 2025, sektor-sektor tersebut memiliki kemampuan yang lebih besar dalam menghasilkan pendapatan rumah tangga dibandingkan sektor berbasis lahan.
 
-
-
 ```{r, echo = FALSE, warning=FALSE}
 p_income
 
@@ -806,12 +795,14 @@ p_import
 ```
 
 ## Simulation BAU
+
 ### Definisi
+
 Skenario ini merupakan proyeksi kondisi ekonomi dan lingkungan yang berjalan tanpa adanya intervensi kebijakan baru atau perubahan signifikan dalam tata kelola sumber daya hingga tahun 2045.
 
 ### Asumsi
-Proyeksi perubahan penggunaan lahan dimodelkan dengan mengacu pada data historis tahun 2020 sampai tahun 2025. Pertumbuhan ekonomi sektor non-LaS diproyeksikan dengan rerata pertumbuhan ekonomi 10 tahun terakhir
 
+Proyeksi perubahan penggunaan lahan dimodelkan dengan mengacu pada data historis tahun 2020 sampai tahun 2025. Pertumbuhan ekonomi sektor non-LaS diproyeksikan dengan rerata pertumbuhan ekonomi 10 tahun terakhir
 
 ```{r, echo = FALSE, warning=FALSE}
 ## Ekstrak vector rerata pertumbuhan sektor unconstrained
@@ -924,10 +915,13 @@ pdrb_LAS1_total <- colSums(pdrb_LAS1)
 ```
 
 ## Simulation LAS-1
+
 ### Definisi
+
 Skenario ini menerapkan prinsip integrasi pengelolaan ruang darat laut yang tertuang pada Strategi-1 melalui Alokasi dan pengelolaan ruang darat-laut dan DAS berkelanjutan.
 
 ### Asumsi
+
 Proyeksi perubahan penggunaan lahan dan pemanfaatan ruang perairan memasukkan unsur perlindungan ekosistem penting, kesesuaian lahan, akses lahan dengan skema perhutanan sosial dan tata ruang. Proyeksi pertumbuhan ekonomi sektor lahan dihitung berdasarkan Koefisien Kebutuhan Lahan 2026-2045 dan tabel Input-Output
 
 ```{r, echo = FALSE, warning=FALSE}
@@ -980,14 +974,16 @@ pdrb_LAS1B <- final_results
 
 pdrb_LAS1B_total <- colSums(pdrb_LAS1B)
 ```
- 
+
 ## Simulation LAS-1+2
+
 ### Definisi
-Pengembangan dari IMLaS-1 dengan memasukkan peningkatan produktivitas komoditas strategi seperti padi, tanaman pangan, kopi, karet,  kelapa, peternakan, dan perikanan budidaya pada Strategi-2 yang dicapai melalui praktik pertanian dan perikanan yang baik.
+
+Pengembangan dari IMLaS-1 dengan memasukkan peningkatan produktivitas komoditas strategi seperti padi, tanaman pangan, kopi, karet, kelapa, peternakan, dan perikanan budidaya pada Strategi-2 yang dicapai melalui praktik pertanian dan perikanan yang baik.
 
 ### Asumsi
-Seluruh asumsi pada IMLaS-1, dipadukan dengan peningkatan produktivitas melalui penerapan praktik budidaya yang baik, dan perbaikan harga melalui rantai pasok serta pemasaran yang diperkuat. Pada akhir periode simulasi, diasumsikan lebih dari 85% area sektor komoditas strategis sudah menerapkan praktik budidaya dan rantai nilai yang baik
 
+Seluruh asumsi pada IMLaS-1, dipadukan dengan peningkatan produktivitas melalui penerapan praktik budidaya yang baik, dan perbaikan harga melalui rantai pasok serta pemasaran yang diperkuat. Pada akhir periode simulasi, diasumsikan lebih dari 85% area sektor komoditas strategis sudah menerapkan praktik budidaya dan rantai nilai yang baik
 
 ```{r, echo = FALSE, warning=FALSE}
 # Loop untuk menghitung total area sektor dan Final Demand LAS dan SType1
@@ -1029,10 +1025,13 @@ pdrb_LAS12_total <- colSums(pdrb_LAS12)
 ```
 
 ## Simulation LAS-1+2+3
+
 ### Definisi
+
 Pengembangan dari IMLaS-2 dengan menambahkan penguatan rantai nilai komoditas strategis pada Strategi-2 melalui hilirisasi produk dan peningkatan investasi.
 
 ### Asumsi
+
 Seluruh asumsi pada IMLaS2, dipadukan dengan upaya mengurangi ekspor bahan mentah, yang kemudian dialihkan pada proses hilirisasi melalui pengembangan industri hilir dan dan Investasi strategis secara bertahap
 
 ```{r, echo = FALSE, warning=FALSE}
@@ -1206,31 +1205,10 @@ hasil_simulasi <- ggplot(plot_df, aes(x = Year)) +
 ```
 
 ## PDRB
-Pendapatan domestik regional bruto merupakan salah satu indikator kinerja
-perekonomian suatu wilayah. Proyeksi terhadap PDRB digunakan untuk
-mengetahui gambaran mengenai arah pertumbuhan ekonomi di suatu
-wilayah yang didasarkan pada dua skenario utama yakni BaU serta skenario
-intervensi IMLaS. Skenario BaU didasarkan pada asumsi bahwa kondisi ekonomi
-dan lingkungan yang berjalan tanpa adanya intervensi kebijakan baru atau
-perubahan signifikan dalam tata kelola sumber daya hingga tahun 2045.
-Skenario IMLaS-3 didasarkan pada asumsi bahwa terjadi perubahan
-penggunaan ruang darat laut melalui kebijakan pengelolaan yang terintegrasi
-serta usaha peningkatan produktivitas komoditas strategis dibarengi dengan
-hilirisasi dan peningkatan investasi. Komoditas strategis yang dilakukan
-intervensi pada IMLaS diantaranya adalah padi, tanaman pangan, kopi, karet, 
-kelapa, peternakan, dan perikanan yang tertuang pada Strategi-2.  
 
-Hasil proyeksi menunjukkan bahwa pada akhir periode simulasi tahun 2045,
-penerapan skenario IMLaS mampu menghasilkan PDRB sebanyak 570,58 triliun
-rupiah. Angka tersebut 5,2% lebih besar ketimbang hasil proyeksi PDRB
-menggunakan skenario BaU yakni 542,2 triliun rupiah. Penerapan intervensi
-skenario IMLaS menunjukkan bahwa rerata laju pertumbuhan ekonomi
-keseluruhan sektor diproyeksikan sebesar 4,02% (lebih besar ketimbang
-skenario BAU sebesar 3,76%). Hal ini didorong oleh pertumbuhan sektor SDA
-dengan perubahan rerata laju pertumbuhan dari 2% (Skenario BaU) menjadi
-4% (Skenario IMLaS). 
+Pendapatan domestik regional bruto merupakan salah satu indikator kinerja perekonomian suatu wilayah. Proyeksi terhadap PDRB digunakan untuk mengetahui gambaran mengenai arah pertumbuhan ekonomi di suatu wilayah yang didasarkan pada dua skenario utama yakni BaU serta skenario intervensi IMLaS. Skenario BaU didasarkan pada asumsi bahwa kondisi ekonomi dan lingkungan yang berjalan tanpa adanya intervensi kebijakan baru atau perubahan signifikan dalam tata kelola sumber daya hingga tahun 2045. Skenario IMLaS-3 didasarkan pada asumsi bahwa terjadi perubahan penggunaan ruang darat laut melalui kebijakan pengelolaan yang terintegrasi serta usaha peningkatan produktivitas komoditas strategis dibarengi dengan hilirisasi dan peningkatan investasi. Komoditas strategis yang dilakukan intervensi pada IMLaS diantaranya adalah padi, tanaman pangan, kopi, karet, kelapa, peternakan, dan perikanan yang tertuang pada Strategi-2.
 
-
+Hasil proyeksi menunjukkan bahwa pada akhir periode simulasi tahun 2045, penerapan skenario IMLaS mampu menghasilkan PDRB sebanyak 570,58 triliun rupiah. Angka tersebut 5,2% lebih besar ketimbang hasil proyeksi PDRB menggunakan skenario BaU yakni 542,2 triliun rupiah. Penerapan intervensi skenario IMLaS menunjukkan bahwa rerata laju pertumbuhan ekonomi keseluruhan sektor diproyeksikan sebesar 4,02% (lebih besar ketimbang skenario BAU sebesar 3,76%). Hal ini didorong oleh pertumbuhan sektor SDA dengan perubahan rerata laju pertumbuhan dari 2% (Skenario BaU) menjadi 4% (Skenario IMLaS).
 
 ```{r, echo = FALSE, warning=FALSE}
 #Tabel PDRB BAU, LAS1, LAS1+2, LAS1+2+3 seluruh BUKECAP
@@ -1506,27 +1484,69 @@ hasil_simulasi_label <- ggplot(plot_df, aes(x = Year)) +
 # Tampilkan Grafik
 print(hasil_simulasi_label)
 
+# ==============================================================================
+# TABEL PERBANDINGAN PDRB BUKECAP (BAU VS. IMLaS-3) TAHUN 2045
+# ==============================================================================
+
+# 1. Ambil Nilai Basis 2025 & Nilai Akhir 2045 PDRB
+pdrb_2025        <- plot_df$pdrb_BAU[plot_df$Year == 2025] # Nilai 2025 sama untuk semua skenario
+pdrb_bau_2045    <- plot_df$pdrb_BAU[plot_df$Year == 2045]
+pdrb_las123_2045 <- plot_df$pdrb_LAS123[plot_df$Year == 2045]
+
+# 2. Hitung Rerata Laju Pertumbuhan Tahunan (CAGR) selama 20 Tahun (2025 ke 2045)
+n_tahun <- 20
+cagr_pdrb_bau    <- ((pdrb_bau_2045 / pdrb_2025)^(1 / n_tahun) - 1) * 100
+cagr_pdrb_las123 <- ((pdrb_las123_2045 / pdrb_2025)^(1 / n_tahun) - 1) * 100
+
+# 3. Hitung Persentase Kenaikan PDRB BAU vs IMLaS-3 pada Tahun 2045
+persen_kenaikan_pdrb_2045 <- ((pdrb_las123_2045 - pdrb_bau_2045) / pdrb_bau_2045) * 100
+
+# 4. Susun Data Frame Ringkasan PDRB
+df_perbandingan_pdrb <- data.frame(
+  Indikator = c(
+    "PDRB BAU 2045",
+    "PDRB IMLaS-3 (LAS1+2+3) 2045",
+    "Selisih Tambahan PDRB (Juta Rp)",
+    "Persentase Kenaikan dibanding BAU (%)",
+    "Rerata Laju Pertumbuhan BAU (2025–2045)",
+    "Rerata Laju Pertumbuhan IMLaS-3 (2025–2045)"
+  ),
+  Nilai = c(
+    sprintf("Rp %s Juta", comma(pdrb_bau_2045)),
+    sprintf("Rp %s Juta", comma(pdrb_las123_2045)),
+    sprintf("Rp %s Juta", comma(pdrb_las123_2045 - pdrb_bau_2045)),
+    sprintf("+%.2f%%", persen_kenaikan_pdrb_2045),
+    sprintf("%.2f%% per tahun", cagr_pdrb_bau),
+    sprintf("%.2f%% per tahun", cagr_pdrb_las123)
+  )
+)
+
+# 5. Cetak Tabel HTML R Markdown
+knitr::kable(
+  df_perbandingan_pdrb,
+  row.names = FALSE,
+  caption = "Perbandingan PDRB BUKECAP (BAU vs. LAS1+2+3) Tahun 2045",
+  col.names = c("Parameter Indikator", "Nilai Simulasi"),
+  align = c("l", "r")
+) %>%
+  kableExtra::kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  kableExtra::row_spec(0, bold = TRUE, extra_css = "border-top: 2px solid #ccc; border-bottom: 2px solid #ccc;") %>%
+  kableExtra::row_spec(4, bold = TRUE, background = "#EAEAEA") # Highlight khusus baris ke-4 (Persentase Kenaikan)
+
 
 ```
+
 ## Pendapatan Per Kapita
-Proyeksi pendapatan masyarakat di wilayah BUKECAP didapat berdasarkan
-pendekatan koefisien kompensasi tenaga kerja (proporsi upah dan gaji
-terhadap PDRB) yang dihubungkan secara langsung dengan total PDRB
-proyeksi tahunan. Selanjutnya, proyeksi pendapatan tersebut dibagi dengan
-total penduduk BUKECAP untuk memperoleh proyeksi pendapatan per kapita
-masyarakat. 
 
-Sejalan dengan pertumbuhan PDRB regional, penerapan berbagai tingkat
-skenario IMLaS terbukti mampu memberikan dorongan signifikan terhadap
-peningkatan pendapatan per kapita di wilayah studi dibandingkan kondisi
-Business As Usual (BAU).  
+Proyeksi pendapatan masyarakat di wilayah BUKECAP didapat berdasarkan pendekatan koefisien kompensasi tenaga kerja (proporsi upah dan gaji terhadap PDRB) yang dihubungkan secara langsung dengan total PDRB proyeksi tahunan. Selanjutnya, proyeksi pendapatan tersebut dibagi dengan total penduduk BUKECAP untuk memperoleh proyeksi pendapatan per kapita masyarakat.
 
-Intervensi skenario IMLaS-3 diproyeksikan mampu meningkatkan rerata laju
-pertumbuhan pendapatan per kapita BUKECAP menjadi 3,2%. Penerapan
-skenario penuh IMLaS-3 ditahun terakhir simulasi menghasilkan selisih
-kenaikan pendapatan masyarakat keseluruhan BUKECAP sebesar Rp 39,49 juta
-per kapita, lebih tinggi dibandingkan skenario BAU pada tahun 2045
-(peningkatan sekitar 5,23%).  
+Sejalan dengan pertumbuhan PDRB regional, penerapan berbagai tingkat skenario IMLaS terbukti mampu memberikan dorongan signifikan terhadap peningkatan pendapatan per kapita di wilayah studi dibandingkan kondisi Business As Usual (BAU).
+
+Intervensi skenario IMLaS-3 diproyeksikan mampu meningkatkan rerata laju pertumbuhan pendapatan per kapita BUKECAP menjadi 3,2%. Penerapan skenario penuh IMLaS-3 ditahun terakhir simulasi menghasilkan selisih kenaikan pendapatan masyarakat keseluruhan BUKECAP sebesar Rp 39,49 juta per kapita, lebih tinggi dibandingkan skenario BAU pada tahun 2045 (peningkatan sekitar 5,23%).
 
 ```{r, echo = FALSE, warning=FALSE}
 
@@ -1536,58 +1556,41 @@ final_income <- plot_df
 final_income <- final_income %>% 
   rename_with(~ sub("^pdrb_", "income_", .x))
 final_income[, -1] <- final_income[, -1] * proporsiupahgaji
-write_xlsx(final_income, "Final_Income_SOLUSI_Bukecap.xlsx")
 
-knitr::kable(
-  final_income,
-  row.names = FALSE, # MENGHILANGKAN KOLOM NOMOR BARIS DI PALING KIRI
-  caption = "Pendapatan Masyarakat BUKECAP per Kapita (Juta Rupiah)", # <-- Judul Tabel
-  digits = 2,
-  format.args = list(big.mark = ","),
-  col.names = c("Year","BAU", "LAS 1", "LAS 1B", "LAS 12", "LAS 123"),
-  align = c("c", "r", "r", "r", "r", "r")
-)
-
-
-# # Plot perbandingan 
-# # Transformasi data ke format long
-# df_long <- final_income %>% 
-#   pivot_longer(
-#     cols = starts_with("income_"), 
-#     names_to = "Skenario", 
-#     values_to = "Income"
-#   )
-# 
-# # Buat Grafik Line
-# plot_income <- ggplot(df_long, aes(x = Year, y = Income, color = Skenario, group = Skenario)) +
-#   geom_line(linewidth = 1) +
-#   geom_point(size = 2) +
-#   scale_y_continuous(labels = scales::comma) + # Format angka desimal/ribuan
-#   labs(
-#     title = "Income Projection Comparison: BAU vs. LAS123 (2025–2045)",
-#     x = "Tahun",
-#     y = "Income (Juta Rupiah)",
-#     color = "Skenario"
-#   ) +
-#   theme_minimal()
-
-# Import Data 
 df_populasi <- populasiPenduduk
 
 df_income_kapita <- final_income %>%
   left_join(df_populasi, by = "Year") %>%
   mutate(
-    # Dibagi 1e6 agar nilainya menjadi satuan Juta Rupiah per Kapita (misal: 21.23)
     incomekapita_BAU    = (income_BAU / Populasi) / 1e6,
+    incomekapita_LAS1   = (income_LAS1 / Populasi) / 1e6,
     incomekapita_LAS1B  = (income_LAS1B / Populasi) / 1e6,
     incomekapita_LAS12  = (income_LAS12 / Populasi) / 1e6,
     incomekapita_LAS123 = (income_LAS123 / Populasi) / 1e6
   )
 
-# ==============================================================================
-# RESHAPE DATA KE FORMAT LONG
-# ==============================================================================
+write_xlsx(df_income_kapita, "Final_Income_SOLUSI_Bukecap.xlsx")
 
+# 2. Cetak Tabel HTML BUKECAP
+df_income_kapita %>%
+  select(Year, incomekapita_BAU, incomekapita_LAS1, incomekapita_LAS1B, incomekapita_LAS12, incomekapita_LAS123) %>%
+  mutate(Year = as.character(Year)) %>%
+  knitr::kable(
+    row.names = FALSE,
+    caption = "Pendapatan Masyarakat BUKECAP per Kapita (Juta Rupiah)",
+    digits = 2,
+    format.args = list(big.mark = ","),
+    col.names = c("Year", "BAU", "LAS 1", "LAS 1B", "LAS 12", "LAS 123"),
+    align = c("c", "r", "r", "r", "r", "r")
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = TRUE,
+    position = "center"
+  ) %>%
+  row_spec(0, bold = TRUE, extra_css = "border-top: 2px solid #ccc; border-bottom: 2px solid #ccc;")
+
+# 3. Reshape Data BUKECAP
 df_long_kapita <- df_income_kapita %>%
   select(Year, starts_with("incomekapita_")) %>%
   pivot_longer(
@@ -1603,12 +1606,10 @@ df_long_kapita <- df_income_kapita %>%
       Skenario == "incomekapita_LAS123" ~ "IMLaS-3"
     ),
     Skenario_Label = factor(Skenario_Label, levels = c("BAU", "IMLaS-1B", "IMLaS-2", "IMLaS-3"))
-  )
+  ) %>%
+  filter(!is.na(Skenario_Label))
 
-# ==============================================================================
-# 3. EKSTRAKSI EKSTREMITAS NILAI (2025 & 2045) UNTUK CALLOUT EXCEL
-# ==============================================================================
-
+# 4. Ekstraksi Nilai & Grafik BUKECAP
 val_2025     <- df_income_kapita$incomekapita_BAU[df_income_kapita$Year == 2025]
 val_bau_2045 <- df_income_kapita$incomekapita_BAU[df_income_kapita$Year == 2045]
 val_las_2045 <- df_income_kapita$incomekapita_LAS123[df_income_kapita$Year == 2045]
@@ -1617,133 +1618,125 @@ lbl_2025     <- number(val_2025, accuracy = 0.01)
 lbl_bau_2045 <- number(val_bau_2045, accuracy = 0.01)
 lbl_las_2045 <- number(val_las_2045, accuracy = 0.01)
 
-# ==============================================================================
-# 4. VISUALISASI GRAFIK PROYEKSI PENDAPATAN PER KAPITA
-# ==============================================================================
-
 p_income_kapita <- ggplot(df_long_kapita, aes(x = Year, y = Income_Kapita, color = Skenario_Label, group = Skenario_Label)) +
-  # --- Garis & Titik ---
   geom_line(linewidth = 1.1) +
   geom_point(size = 2.5) +
-  
-  # --- Garis Penunjuk / Callout Pointer Lines ---
-  annotate("segment", x = 2025.2, xend = 2026.8, y = val_2025, yend = val_2025 + 2.5, 
-           color = "gray40", linewidth = 0.6) +
-  
-  annotate("segment", x = 2044.8, xend = 2042.8, y = val_las_2045, yend = val_las_2045 + 2.2, 
-           color = "gray40", linewidth = 0.6) +
-  
-  annotate("segment", x = 2044.8, xend = 2043.2, y = val_bau_2045, yend = val_bau_2045 - 2.5, 
-           color = "gray40", linewidth = 0.6) +
-  
-  # --- Kotak Label Nilai (Callout Box) ---
-  annotate("label", x = 2027.2, y = val_2025 + 2.7, label = lbl_2025, 
-           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
-  
-  annotate("label", x = 2042.0, y = val_las_2045 + 2.4, label = lbl_las_2045, 
-           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
-  
-  annotate("label", x = 2042.5, y = val_bau_2045 - 2.7, label = lbl_bau_2045, 
-           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
-
-  # --- Skala dan Warna ---
-  scale_color_manual(
-    name = NULL,
-    values = c(
-      "BAU"     = "#4178BE",  # Biru Excel
-      "IMLaS-1B" = "#C0392B",  # Merah Excel
-      "IMLaS-2" = "#7DCE13",  # Hijau Excel
-      "IMLaS-3" = "#8E44AD"   # Ungu Excel
-    )
-  ) +
+  annotate("segment", x = 2025.2, xend = 2026.8, y = val_2025, yend = val_2025 + 2.5, color = "gray40", linewidth = 0.6) +
+  annotate("segment", x = 2044.8, xend = 2042.8, y = val_las_2045, yend = val_las_2045 + 2.2, color = "gray40", linewidth = 0.6) +
+  annotate("segment", x = 2044.8, xend = 2043.2, y = val_bau_2045, yend = val_bau_2045 - 2.5, color = "gray40", linewidth = 0.6) +
+  annotate("label", x = 2027.2, y = val_2025 + 2.7, label = lbl_2025, fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
+  annotate("label", x = 2042.0, y = val_las_2045 + 2.4, label = lbl_las_2045, fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
+  annotate("label", x = 2042.5, y = val_bau_2045 - 2.7, label = lbl_bau_2045, fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
+  scale_color_manual(name = NULL, values = c("BAU" = "#4178BE", "IMLaS-1B" = "#C0392B", "IMLaS-2" = "#7DCE13", "IMLaS-3" = "#8E44AD")) +
   scale_x_continuous(breaks = seq(2025, 2045, by = 5), limits = c(2024.5, 2045.5)) +
   scale_y_continuous(labels = number_format(accuracy = 0.01), limits = c(18, 45)) +
-  
-  # --- Judul dan Label Sumbu ---
-  labs(
-    title = "Proyeksi Pendapatan per Kapita 2026–2045",
-    x = NULL,
-    y = "Juta rupiah"
-  ) +
-  
-  # --- Tema Tampilan Excel Style ---
+  labs(title = "Proyeksi Pendapatan per Kapita 2026–2045", x = NULL, y = "Juta rupiah") +
   theme_minimal(base_size = 13) +
-  theme(
-    plot.title = element_text(face = "bold", hjust = 0.5, size = 15, color = "gray20"),
-    axis.title.y = element_text(color = "gray30", size = 12),
-    axis.text = element_text(color = "gray20"),
-    legend.position = "bottom",
-    panel.grid.minor = element_blank(),
-    panel.grid.major.x = element_blank()
-  )
+  theme(plot.title = element_text(face = "bold", hjust = 0.5, size = 15, color = "gray20"), axis.title.y = element_text(color = "gray30", size = 12), axis.text = element_text(color = "gray20"), legend.position = "bottom", panel.grid.minor = element_blank(), panel.grid.major.x = element_blank())
 
-# Tampilkan Grafik
 print(p_income_kapita)
+
+
+
+
+# 5. Tabel Perbandingan BUKECAP 2045
+# Ambil Nilai Basis 2025 & Nilai Akhir 2045
+inc_2025           <- df_income_kapita$incomekapita_BAU[df_income_kapita$Year == 2025] # Nilai 2025 sama untuk semua skenario
+income_bau_2045    <- df_income_kapita$incomekapita_BAU[df_income_kapita$Year == 2045]
+income_las123_2045 <- df_income_kapita$incomekapita_LAS123[df_income_kapita$Year == 2045]
+
+# Hitung Rerata Laju Pertumbuhan Tahunan (CAGR) selama 20 Tahun (2025 ke 2045)
+n_tahun <- 20
+cagr_bau    <- ((income_bau_2045 / inc_2025)^(1 / n_tahun) - 1) * 100
+cagr_las123 <- ((income_las123_2045 / inc_2025)^(1 / n_tahun) - 1) * 100
+persen_kenaikan_2045 <- ((income_las123_2045 - income_bau_2045) / income_bau_2045) * 100
+
+df_perbandingan_income <- data.frame(
+  Indikator = c(
+    "Income per Kapita BAU 2045",
+    "Income per Kapita IMLaS-3 (LAS1+2+3) 2045",
+    "Selisih Tambahan Income (Juta Rp)",
+    "Persentase Kenaikan dibanding BAU (%)",
+    "Rerata Laju Pertumbuhan BAU (2025–2045)",
+    "Rerata Laju Pertumbuhan IMLaS-3 (2025–2045)"
+  ),
+  Nilai = c(
+    sprintf("Rp %.2f Juta", income_bau_2045),
+    sprintf("Rp %.2f Juta", income_las123_2045),
+    sprintf("Rp %.2f Juta", income_las123_2045 - income_bau_2045),
+    sprintf("+%.2f%%", persen_kenaikan_2045),
+    sprintf("%.2f%%", cagr_bau),
+    sprintf("%.2f%%", cagr_las123)
+  )
+)
+
+# Cetak Tabel HTML R Markdown
+knitr::kable(
+  df_perbandingan_income,
+  row.names = FALSE,
+  caption = "Perbandingan Income Masyarakat BUKECAP (BAU vs. LAS1+2+3) Tahun 2045",
+  col.names = c("Parameter Indikator", "Nilai Simulasi"),
+  align = c("l", "r")
+) %>%
+  kableExtra::kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  kableExtra::row_spec(0, bold = TRUE, extra_css = "border-top: 2px solid #ccc; border-bottom: 2px solid #ccc;") %>%
+  kableExtra::row_spec(4, bold = TRUE, background = "#EAEAEA") # Highlight baris ke-6 (Persentase Kenaikan)
+
 
 ```
 
-
-
 ## Pendapatan Masyarakat Pesisir per Kapita
-Proyeksi pendapatan per kapita masyarakat pesisir dihitung dengan membagi
-proyeksi pendapatan masyarakat pesisir BUKECAP dengan proyeksi populasi
-masyarakat pesisir. Kedua proyeksi tersebut diestimasi berdasarkan proporsi
-luas wilayah pesisir terhadap total wilayah BUKECAP, yang dikaitkan dengan
-proyeksi pendapatan masyarakat dan populasi BUKECAP secara keseluruhan.
-Pendekatan ini digunakan untuk menggambarkan sejauh mana dampak
-intervensi terhadap perekonomian regional tercermin pada tingkat
-kesejahteraan masyarakat pesisir. 
 
-Tanpa adanya intervensi pengelolaan berbasis lahan dan pasar yang inklusif,
-pendapatan per kapita masyarakat pesisir diproyeksikan tumbuh secara
-alamiah hingga mencapai Rp 44,4 juta pada tahun 2045. Pelaksanaan skenario
-intervensi secara konsisten menunjukkan deviasi positif di atas kurva BAU.
-Skenario IMLaS-1 serta IMLaS-2 secara bertahap menaikkan taraf pendapatan
-kawasan pesisir.  
+Proyeksi pendapatan per kapita masyarakat pesisir dihitung dengan membagi proyeksi pendapatan masyarakat pesisir BUKECAP dengan proyeksi populasi masyarakat pesisir. Kedua proyeksi tersebut diestimasi berdasarkan proporsi luas wilayah pesisir terhadap total wilayah BUKECAP, yang dikaitkan dengan proyeksi pendapatan masyarakat dan populasi BUKECAP secara keseluruhan. Pendekatan ini digunakan untuk menggambarkan sejauh mana dampak intervensi terhadap perekonomian regional tercermin pada tingkat kesejahteraan masyarakat pesisir.
 
-Puncak potensi dicapai pada Skenario IMLaS-3 yang merupakan kombinasi
-optimal tata guna lahan, produktivitas, dan hilirisasi rantai nilai berbasis
-lahan/pesisir), di mana pendapatan per kapita masyarakat pesisir
-diproyeksikan meningkat hingga Rp 46,7 juta pada tahun 2045. Penerapan
-skenario penuh IMLaS-3 menghasilkan tambahan pendapatan bagi
-masyarakat pesisir sebesar Rp2,3 juta lebih tinggi dibandingkan skenario BaU
-pada tahun 2045. Angka ini mencerminkan peningkatan sebesar 5,18% pada
-pendapatan per kapita masyarakat pesisir jika dibandingkan dengan kondisi
-tanpa intervensi. 
+Tanpa adanya intervensi pengelolaan berbasis lahan dan pasar yang inklusif, pendapatan per kapita masyarakat pesisir diproyeksikan tumbuh secara alamiah hingga mencapai Rp 44,4 juta pada tahun 2045. Pelaksanaan skenario intervensi secara konsisten menunjukkan deviasi positif di atas kurva BAU. Skenario IMLaS-1 serta IMLaS-2 secara bertahap menaikkan taraf pendapatan kawasan pesisir.
+
+Puncak potensi dicapai pada Skenario IMLaS-3 yang merupakan kombinasi optimal tata guna lahan, produktivitas, dan hilirisasi rantai nilai berbasis lahan/pesisir), di mana pendapatan per kapita masyarakat pesisir diproyeksikan meningkat hingga Rp 46,7 juta pada tahun 2045. Penerapan skenario penuh IMLaS-3 menghasilkan tambahan pendapatan bagi masyarakat pesisir sebesar Rp2,3 juta lebih tinggi dibandingkan skenario BaU pada tahun 2045. Angka ini mencerminkan peningkatan sebesar 5,18% pada pendapatan per kapita masyarakat pesisir jika dibandingkan dengan kondisi tanpa intervensi.
 
 ```{r, echo = FALSE, warning=FALSE}
 propLuasPesisir <- propLuasPesisir
 final_income_pesisir <- final_income
 final_income_pesisir[, -1] <- final_income_pesisir[, -1] * propLuasPesisir
-write_xlsx(final_income_pesisir, "Final_Income_pesisir_SOLUSI_Bukecap.xlsx")
-knitr::kable(
-  final_income_pesisir,
-  row.names = FALSE, # MENGHILANGKAN KOLOM NOMOR BARIS DI PALING KIRI
-  caption = "Pendapatan Masyarakat Pesisir per Kapita (Juta Rupiah)", # <-- Judul Tabel
-  digits = 2,
-  format.args = list(big.mark = ","),
-  col.names = c("Year","BAU", "LAS 1", "LAS 1B", "LAS 12", "LAS 123"),
-  align = c("c", "r", "r", "r", "r", "r")
-)
 
-# Import Data, pastikan ada kolom "Year" dan "Populasi" (dalam juta orang)
-df_populasi <- populasiPendudukPesisir
+df_populasi_pesisir <- populasiPendudukPesisir # Variabel dipisah agar tidak tertimpa
 
-df_income_kapita <- final_income_pesisir %>%
-  left_join(df_populasi, by = "Year") %>%
+df_income_pesisir <- final_income_pesisir %>%
+  left_join(df_populasi_pesisir, by = "Year") %>%
   mutate(
-    # Dibagi 1e6 agar nilainya menjadi satuan Juta Rupiah per Kapita (misal: 21.23)
     incomekapita_BAU    = (income_BAU / Populasi) / 1e6,
+    incomekapita_LAS1   = (income_LAS1 / Populasi) / 1e6,
     incomekapita_LAS1B  = (income_LAS1B / Populasi) / 1e6,
     incomekapita_LAS12  = (income_LAS12 / Populasi) / 1e6,
     incomekapita_LAS123 = (income_LAS123 / Populasi) / 1e6
   )
 
-# ==============================================================================
-# RESHAPE DATA KE FORMAT LONG
-# ==============================================================================
+write_xlsx(df_income_pesisir, "Final_Income_pesisir_SOLUSI_Bukecap.xlsx")
 
-df_long_kapita <- df_income_kapita %>%
+# 2. Cetak Tabel HTML Pesisir
+df_income_pesisir %>%
+  select(Year, incomekapita_BAU, incomekapita_LAS1, incomekapita_LAS1B, incomekapita_LAS12, incomekapita_LAS123) %>%
+  mutate(Year = as.character(Year)) %>%
+  knitr::kable(
+    row.names = FALSE,
+    caption = "Pendapatan Masyarakat Pesisir per Kapita (Juta Rupiah)",
+    digits = 2,
+    format.args = list(big.mark = ","),
+    col.names = c("Year", "BAU", "LAS 1", "LAS 1B", "LAS 12", "LAS 123"),
+    align = c("c", "r", "r", "r", "r", "r")
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = TRUE,
+    position = "center"
+  ) %>%
+  row_spec(0, bold = TRUE, extra_css = "border-top: 2px solid #ccc; border-bottom: 2px solid #ccc;")
+
+# 3. PERBAIKAN: Reshape Data Pesisir ke Format Long
+df_pesisir_kapita <- df_income_pesisir %>%
   select(Year, starts_with("incomekapita_")) %>%
   pivot_longer(
     cols = starts_with("incomekapita_"),
@@ -1758,132 +1751,85 @@ df_long_kapita <- df_income_kapita %>%
       Skenario == "incomekapita_LAS123" ~ "IMLaS-3"
     ),
     Skenario_Label = factor(Skenario_Label, levels = c("BAU", "IMLaS-1B", "IMLaS-2", "IMLaS-3"))
-  )
+  ) %>%
+  filter(!is.na(Skenario_Label))
 
-# ==============================================================================
-# 3. EKSTRAKSI EKSTREMITAS NILAI (2025 & 2045) UNTUK CALLOUT EXCEL
-# ==============================================================================
+# 4. Ekstraksi Nilai & Grafik Pesisir
+val_2025_pes     <- df_income_pesisir$incomekapita_BAU[df_income_pesisir$Year == 2025]
+val_bau_2045_pes <- df_income_pesisir$incomekapita_BAU[df_income_pesisir$Year == 2045]
+val_las_2045_pes <- df_income_pesisir$incomekapita_LAS123[df_income_pesisir$Year == 2045]
 
-val_2025     <- df_income_kapita$incomekapita_BAU[df_income_kapita$Year == 2025]
-val_bau_2045 <- df_income_kapita$incomekapita_BAU[df_income_kapita$Year == 2045]
-val_las_2045 <- df_income_kapita$incomekapita_LAS123[df_income_kapita$Year == 2045]
+lbl_2025_pes     <- number(val_2025_pes, accuracy = 0.01)
+lbl_bau_2045_pes <- number(val_bau_2045_pes, accuracy = 0.01)
+lbl_las_2045_pes <- number(val_las_2045_pes, accuracy = 0.01)
 
-lbl_2025     <- number(val_2025, accuracy = 0.01)
-lbl_bau_2045 <- number(val_bau_2045, accuracy = 0.01)
-lbl_las_2045 <- number(val_las_2045, accuracy = 0.01)
-
-# ==============================================================================
-# 4. VISUALISASI GRAFIK PROYEKSI PENDAPATAN PER KAPITA
-# ==============================================================================
-
-p_income_kapita_pesisir <- ggplot(df_long_kapita, aes(x = Year, y = Income_Kapita, color = Skenario_Label, group = Skenario_Label)) +
-  # --- Garis & Titik ---
+# PERBAIKAN: Gunakan df_pesisir_kapita pada ggplot()
+p_income_kapita_pesisir <- ggplot(df_pesisir_kapita, aes(x = Year, y = Income_Kapita, color = Skenario_Label, group = Skenario_Label)) +
   geom_line(linewidth = 1.1) +
   geom_point(size = 2.5) +
-  
-  # --- Garis Penunjuk / Callout Pointer Lines ---
-  annotate("segment", x = 2025.2, xend = 2026.8, y = val_2025, yend = val_2025 + 2.5, 
-           color = "gray40", linewidth = 0.6) +
-  
-  annotate("segment", x = 2044.8, xend = 2042.8, y = val_las_2045, yend = val_las_2045 + 2.2, 
-           color = "gray40", linewidth = 0.6) +
-  
-  annotate("segment", x = 2044.8, xend = 2043.2, y = val_bau_2045, yend = val_bau_2045 - 2.5, 
-           color = "gray40", linewidth = 0.6) +
-  
-  # --- Kotak Label Nilai (Callout Box) ---
-  annotate("label", x = 2027.2, y = val_2025 + 2.7, label = lbl_2025, 
-           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
-  
-  annotate("label", x = 2042.0, y = val_las_2045 + 2.4, label = lbl_las_2045, 
-           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
-  
-  annotate("label", x = 2042.5, y = val_bau_2045 - 2.7, label = lbl_bau_2045, 
-           fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
-
-  # --- Skala dan Warna ---
-  scale_color_manual(
-    name = NULL,
-    values = c(
-      "BAU"     = "#4178BE",  # Biru Excel
-      "IMLaS-1B" = "#C0392B",  # Merah Excel
-      "IMLaS-2" = "#7DCE13",  # Hijau Excel
-      "IMLaS-3" = "#8E44AD"   # Ungu Excel
-    )
-  ) +
+  annotate("segment", x = 2025.2, xend = 2026.8, y = val_2025_pes, yend = val_2025_pes + 2.5, color = "gray40", linewidth = 0.6) +
+  annotate("segment", x = 2044.8, xend = 2042.8, y = val_las_2045_pes, yend = val_las_2045_pes + 2.2, color = "gray40", linewidth = 0.6) +
+  annotate("segment", x = 2044.8, xend = 2043.2, y = val_bau_2045_pes, yend = val_bau_2045_pes - 2.5, color = "gray40", linewidth = 0.6) +
+  annotate("label", x = 2027.2, y = val_2025_pes + 2.7, label = lbl_2025_pes, fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
+  annotate("label", x = 2042.0, y = val_las_2045_pes + 2.4, label = lbl_las_2045_pes, fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
+  annotate("label", x = 2042.5, y = val_bau_2045_pes - 2.7, label = lbl_bau_2045_pes, fontface = "bold", fill = "#EAEAEA", color = "black", size = 4.2, label.padding = unit(0.4, "lines")) +
+  scale_color_manual(name = NULL, values = c("BAU" = "#4178BE", "IMLaS-1B" = "#C0392B", "IMLaS-2" = "#7DCE13", "IMLaS-3" = "#8E44AD")) +
   scale_x_continuous(breaks = seq(2025, 2045, by = 5), limits = c(2024.5, 2045.5)) +
   scale_y_continuous(labels = number_format(accuracy = 0.01), limits = c(18, 45)) +
-  
-  # --- Judul dan Label Sumbu ---
-  labs(
-    title = "Proyeksi Pendapatan per Kapita Masyarakat Pesisir 2026–2045",
-    x = NULL,
-    y = "Juta rupiah"
-  ) +
-  
-  # --- Tema Tampilan Excel Style ---
+  labs(title = "Proyeksi Pendapatan per Kapita Masyarakat Pesisir 2026–2045", x = NULL, y = "Juta rupiah") +
   theme_minimal(base_size = 13) +
-  theme(
-    plot.title = element_text(face = "bold", hjust = 0.5, size = 15, color = "gray20"),
-    axis.title.y = element_text(color = "gray30", size = 12),
-    axis.text = element_text(color = "gray20"),
-    legend.position = "bottom",
-    panel.grid.minor = element_blank(),
-    panel.grid.major.x = element_blank()
-  )
+  theme(plot.title = element_text(face = "bold", hjust = 0.5, size = 15, color = "gray20"), axis.title.y = element_text(color = "gray30", size = 12), axis.text = element_text(color = "gray20"), legend.position = "bottom", panel.grid.minor = element_blank(), panel.grid.major.x = element_blank())
 
-# Tampilkan Grafik
 print(p_income_kapita_pesisir)
 
-# Plot perbandingan
-# Transformasi data ke format long
-# df_long <- final_income_pesisir %>% 
-#   pivot_longer(
-#     cols = starts_with("income_"), 
-#     names_to = "Skenario", 
-#     values_to = "Income"
-#   )
-# 
-# # Buat Grafik Line
-# ggplot(df_long, aes(x = Year, y = Income, color = Skenario, group = Skenario)) +
-#   geom_line(linewidth = 1) +
-#   geom_point(size = 2) +
-#   scale_y_continuous(labels = scales::comma) + # Format angka desimal/ribuan
-#   labs(
-#     title = "Income (Masyarakat Pesisir) Projection Comparison: BAU vs. LAS123 (2025–2045)",
-#     x = "Tahun",
-#     y = "Income (Juta Rupiah)",
-#     color = "Skenario"
-#   ) +
-#   theme_minimal()
+# 5. Tabel Perbandingan Pesisir 2045
+n_tahun <- 20
+cagr_bau_pes    <- ((val_bau_2045_pes / val_2025_pes)^(1 / n_tahun) - 1) * 100
+cagr_las123_pes <- ((val_las_2045_pes / val_2025_pes)^(1 / n_tahun) - 1) * 100
+persen_kenaikan_pesisir_2045 <- ((val_las_2045_pes - val_bau_2045_pes) / val_bau_2045_pes) * 100
 
+df_perbandingan_pesisir <- data.frame(
+  Indikator = c(
+    "Income per Kapita Pesisir BAU 2045",
+    "Income per Kapita Pesisir IMLaS-3 (LAS1+2+3) 2045",
+    "Selisih Tambahan Income Pesisir (Juta Rp)",
+    "Persentase Kenaikan dibanding BAU (%)",
+    "Rerata Laju Pertumbuhan BAU Pesisir (2025–2045)",
+    "Rerata Laju Pertumbuhan IMLaS-3 Pesisir (2025–2045)"
+  ),
+  Nilai = c(
+    sprintf("Rp %.2f Juta", val_bau_2045_pes),
+    sprintf("Rp %.2f Juta", val_las_2045_pes),
+    sprintf("Rp %.2f Juta", val_las_2045_pes - val_bau_2045_pes),
+    sprintf("+%.2f%%", persen_kenaikan_pesisir_2045),
+    sprintf("%.2f%%", cagr_bau_pes),
+    sprintf("%.2f%%", cagr_las123_pes)
+  )
+)
 
+knitr::kable(
+  df_perbandingan_pesisir,
+  row.names = FALSE,
+  caption = "Perbandingan Income Masyarakat Pesisir (BAU vs. IMLaS-3) Tahun 2045",
+  col.names = c("Parameter Indikator Pesisir", "Nilai Simulasi"),
+  align = c("l", "r")
+) %>%
+  kableExtra::kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  kableExtra::row_spec(0, bold = TRUE, extra_css = "border-top: 2px solid #ccc; border-bottom: 2px solid #ccc;") %>%
+  kableExtra::row_spec(4, bold = TRUE, background = "#EAEAEA") # Highlight khusus baris ke-6 (Persentase Kenaikan)
 ```
 
-
 ## Total Keuntungan Usaha
-Proyeksi total keuntungan usaha regional dihitung berdasarkan proporsi
-Surplus Usaha Bruto (Gross Operating Surplus) terhadap total PDRB, yang
-kemudian diselaraskan dengan proyeksi PDRB. Indikator ini mencerminkan porsi
-nilai tambah ekonomi yang diperoleh para pelaku usaha dan pemilik modal
-atas investasi serta aktivitas bisnis di wilayah BUKECAP. 
 
-Tanpa adanya intervensi kebijakan perekonomian regional, keuntungan usaha
-diproyeksikan tumbuh secara alamiah hingga mencapai Rp291,38 triliun pada
-tahun 2045. Sedangkan dengan adanya penerapan skenario IMLAS
-menghasilkan capaian tertinggi nilai proyeksi keuntungan usaha mencapai
-Rp306,63 triliun pada akhir periode simulasi tahun 2045. Menerapkan skenario
-IMLaS-3 berpotensi memberikan tambahan keuntungan usaha sebesar Rp15,25
-triliun lebih tinggi dibandingkan skenario BAU pada tahun 2045. 
+Proyeksi total keuntungan usaha regional dihitung berdasarkan proporsi Surplus Usaha Bruto (Gross Operating Surplus) terhadap total PDRB, yang kemudian diselaraskan dengan proyeksi PDRB. Indikator ini mencerminkan porsi nilai tambah ekonomi yang diperoleh para pelaku usaha dan pemilik modal atas investasi serta aktivitas bisnis di wilayah BUKECAP.
 
-Pendapatan keuntungan usaha menggambarkan manfaat ekonomi yang
-diterima oleh pelaku usaha sebagai hasil dari perkembangan aktivitas ekonomi
-di suatu wilayah. Grafik di bawah menunjukkan bahwa di akhir periode tahun
-2045, potensi keuntungan usaha regional dapat ditingkatkan menjadi 5,2%
-lebih besar dengan menerapkan skenario IMLaS-3 dibanding skenario BaU.
-Melalui penerapan intervensi IMLaS-3, keuntungan usaha regional di BUKECAP
-secara rata-rata diproyeksikan 4,5% lebih tinggi dibandingkan jika wilayah
-berjalan dengan skenario BAU. 
+Tanpa adanya intervensi kebijakan perekonomian regional, keuntungan usaha diproyeksikan tumbuh secara alamiah hingga mencapai Rp291,38 triliun pada tahun 2045. Sedangkan dengan adanya penerapan skenario IMLAS menghasilkan capaian tertinggi nilai proyeksi keuntungan usaha mencapai Rp306,63 triliun pada akhir periode simulasi tahun 2045. Menerapkan skenario IMLaS-3 berpotensi memberikan tambahan keuntungan usaha sebesar Rp15,25 triliun lebih tinggi dibandingkan skenario BAU pada tahun 2045.
+
+Pendapatan keuntungan usaha menggambarkan manfaat ekonomi yang diterima oleh pelaku usaha sebagai hasil dari perkembangan aktivitas ekonomi di suatu wilayah. Grafik di bawah menunjukkan bahwa di akhir periode tahun 2045, potensi keuntungan usaha regional dapat ditingkatkan menjadi 5,2% lebih besar dengan menerapkan skenario IMLaS-3 dibanding skenario BaU. Melalui penerapan intervensi IMLaS-3, keuntungan usaha regional di BUKECAP secara rata-rata diproyeksikan 4,5% lebih tinggi dibandingkan jika wilayah berjalan dengan skenario BAU.
 
 ```{r, echo = FALSE, warning=FALSE}
 # proporsi surplus usaha bruto
@@ -1915,6 +1861,9 @@ df_long <- final_surplus %>%
     names_to = "Skenario", 
     values_to = "Surplus"
   )
+
+# untuk penamaan panggilan pada variable name pada metadata
+df_surplus <- df_long
 
 # Ambil nilai numerik spesifik tahun 2025 dan 2045 dari data frame
 val_2025     <- df_long$Surplus[df_long$Year == 2025 & df_long$Skenario == "surplus_BAU"][1]
@@ -2008,18 +1957,53 @@ p_keuntungan_usaha <- ggplot(df_long, aes(x = Year, y = Surplus, color = Skenari
 # Tampilkan Grafik
 print(p_keuntungan_usaha)
 
+# Hitung Persentase Pertumbuhan Tambahan
+n_tahun <- 20
+cagr_bau_surplus    <- ((val_bau_2045 / val_2025)^(1 / n_tahun) - 1) * 100
+cagr_las123_surplus <- ((val_las_2045 / val_2025)^(1 / n_tahun) - 1) * 100
+persen_kenaikan_surplus_2045 <- ((val_las_2045 - val_bau_2045) / val_bau_2045) * 100
+
+# Susun Data Frame Ringkasan 4 Baris
+df_perbandingan_surplus <- data.frame(
+  Indikator = c(
+    "Total Keuntungan Usaha BAU 2045",
+    "Total Keuntungan Usaha IMLaS-3 (LAS1+2+3) 2045",
+    "Selisih Tambahan Keuntungan Usaha (Juta Rp)",
+    "Persentase Kenaikan dibanding BAU (%)",
+    "Rerata Laju Pertumbuhan BAU (2025–2045)",
+    "Rerata Laju Pertumbuhan IMLaS-3 (2025–2045)"
+  ),
+  Nilai = c(
+    sprintf("Rp %s Juta", comma(val_bau_2045)),
+    sprintf("Rp %s Juta", comma(val_las_2045)),
+    sprintf("Rp %s Juta", comma(val_las_2045 - val_bau_2045)),
+    sprintf("+%.2f%%", persen_kenaikan_surplus_2045),
+    sprintf("%.2f%%", cagr_bau_surplus),
+    sprintf("%.2f%%", cagr_las123_surplus)
+  )
+)
+
+# Cetak Tabel HTML R Markdown
+knitr::kable(
+  df_perbandingan_surplus,
+  row.names = FALSE,
+  caption = "Perbandingan Keuntungan Usaha Regional (BAU vs. IMLaS-3) Tahun 2045",
+  col.names = c("Parameter Indikator Keuntungan Usaha", "Nilai Simulasi"),
+  align = c("l", "r")
+) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  row_spec(0, bold = TRUE, extra_css = "border-top: 2px solid #ccc; border-bottom: 2px solid #ccc;") %>%
+  row_spec(4, bold = TRUE, background = "#EAEAEA") # Highlight khusus baris ke-6 (Persentase Kenaikan)
+
 ```
 
-
 ## Serapan Tenaga Kerja
-Proyeksi serapan tenaga kerja mengasumsikan penambahan tenaga kerja
-baru tahunan sebagai hasil akumulasi selisih pertumbuhan PDRB yang
-diselaraskan dengan nilai Labor Multiplier. Intervensi melalui skenario IMLaS
-diharapkan mampu menyerap lebih banyak tenaga kerja. Hasil proyeksi
-menunjukkan bahwa Intervensi skenario IMLaS-3 di akhir tahun 2045
-diproyeksikan mampu meningkatkan total tenaga kerja sebesar 6.016.163
-orang. Angka tersebut 5,2% lebih besar bila dibandingkan dengan hasil simulasi
-penerapan skenario BaU (Bussiness as Usual) yakni 5.719.673 orang. 
+
+Proyeksi serapan tenaga kerja mengasumsikan penambahan tenaga kerja baru tahunan sebagai hasil akumulasi selisih pertumbuhan PDRB yang diselaraskan dengan nilai Labor Multiplier. Intervensi melalui skenario IMLaS diharapkan mampu menyerap lebih banyak tenaga kerja. Hasil proyeksi menunjukkan bahwa Intervensi skenario IMLaS-3 di akhir tahun 2045 diproyeksikan mampu meningkatkan total tenaga kerja sebesar 6.016.163 orang. Angka tersebut 5,2% lebih besar bila dibandingkan dengan hasil simulasi penerapan skenario BaU (Bussiness as Usual) yakni 5.719.673 orang.
 
 ```{r, echo = FALSE, warning=FALSE}
 # KONSTANTA TK
@@ -2107,6 +2091,10 @@ df_long <- final_tk %>%
     values_to = "TK"
   )
 
+
+# untuk penamaan panggilan pada variable name pada metadata
+df_TK <- df_long
+
 # Ambil nilai numerik spesifik tahun 2025 dan 2045 dari data frame
 val_2025     <- df_long$TK[df_long$Year == 2025 & df_long$Skenario == "TK_BAU"][1]
 val_bau_2045 <- df_long$TK[df_long$Year == 2045 & df_long$Skenario == "TK_BAU"][1]
@@ -2191,37 +2179,57 @@ p_serapan_tk <- ggplot(df_long, aes(x = Year, y = TK, color = Skenario, group = 
 # Tampilkan Grafik
 print(p_serapan_tk)
 
+# Hitung Persentase Pertumbuhan Tambahan Tenaga Kerja
+n_tahun <- 20
+cagr_bau_tk    <- ((val_bau_2045 / val_2025)^(1 / n_tahun) - 1) * 100
+cagr_las123_tk <- ((val_las_2045 / val_2025)^(1 / n_tahun) - 1) * 100
+persen_kenaikan_tk_2045 <- ((val_las_2045 - val_bau_2045) / val_bau_2045) * 100
+
+# Susun Data Frame Ringkasan 4 Baris
+df_perbandingan_tk <- data.frame(
+  Indikator = c(
+    "Serapan Tenaga Kerja BAU 2045",
+    "Serapan Tenaga Kerja IMLaS-3 (LAS1+2+3) 2045",
+    "Selisih Tambahan Serapan TK (Orang)",
+    "Persentase Kenaikan dibanding BAU (%)",
+    "Rerata Laju Pertumbuhan BAU per tahun (2025–2045)",
+    "Rerata Laju Pertumbuhan IMLaS-3 per tahun (2025–2045)"
+  ),
+  Nilai = c(
+    sprintf("%s Orang", comma(round(val_bau_2045, 0))),
+    sprintf("%s Orang", comma(round(val_las_2045, 0))),
+    sprintf("%s Orang", comma(round(val_las_2045 - val_bau_2045, 0))),
+    sprintf("+%.2f%%", persen_kenaikan_tk_2045),
+    sprintf("%.2f%%", cagr_bau_tk),
+    sprintf("%.2f%%", cagr_las123_tk)
+  )
+)
+
+# Cetak Tabel HTML R Markdown
+knitr::kable(
+  df_perbandingan_tk,
+  row.names = FALSE,
+  caption = "Perbandingan Serapan Tenaga Kerja Regional (BAU vs. IMLaS-3) Tahun 2045",
+  col.names = c("Parameter Indikator Tenaga Kerja", "Nilai Simulasi"),
+  align = c("l", "r")
+) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = FALSE,
+    position = "center"
+  ) %>%
+  row_spec(0, bold = TRUE, extra_css = "border-top: 2px solid #ccc; border-bottom: 2px solid #ccc;") %>%
+  row_spec(4, bold = TRUE, background = "#EAEAEA") # Highlight khusus baris ke-6 (Persentase Kenaikan)
+
 ```
 
-
-
 ## Keterkaitan SDA dengan sektor lain
-Indeks Total Forward Linkage (ITFL) atau Indeks Derajat Kepekaan mengukur
-sejauh mana sektor berbasis lahan berfungsi sebagai penyedia input (supplier)
-bagi pertumbuhan sektor-sektor perekonomian lainnya. Semakin tinggi nilai
-ITFL, semakin kuat dorongan yang diberikan oleh sektor lahan terhadap rantai
-pasok hilir (forward linkage) dan sektor olahan di dalam struktur ekonomi
-regional.  
 
-Pada kondisi BAU, rerata nilai ITFL sektor lahan berada pada tingkat yang sangat
-datar dan stagnan di kisaran 0,18 sepanjang periode 2025 hingga 2045. Hal ini
-mengindikasikan bahwa tanpa adanya intervensi struktur perekonomian,
-keterkaitan sektor lahan terhadap sektor hilir tidak mengalami penguatan dan
-cenderung bertindak sekadar sebagai penyedia bahan baku mentah tanpa
-integrasi rantai nilai yang memadai. Penerapan skenario IMLAS-3
-memperlihatkan peningkatan rerata ITFL yang signifikan dan konsisten
-membentuk pola naik. Dimulai dari titik awal yang sama pada tahun 2025–2027
-(0,18), nilai ITFL meningkat secara bertahap menembus 0,185 pada kisaran
-tahun 2030, melampaui 0,19 pada periode 2040–2041, hingga mencapai
-puncaknya mendekati 0,20 pada tahun 2045. 
+Indeks Total Forward Linkage (ITFL) atau Indeks Derajat Kepekaan mengukur sejauh mana sektor berbasis lahan berfungsi sebagai penyedia input (supplier) bagi pertumbuhan sektor-sektor perekonomian lainnya. Semakin tinggi nilai ITFL, semakin kuat dorongan yang diberikan oleh sektor lahan terhadap rantai pasok hilir (forward linkage) dan sektor olahan di dalam struktur ekonomi regional.
 
-Kenaikan bertahap pada kurva simulasi LAS membuktikan bahwa intervensi
-kebijakan (penguatan akses lahan, peningkatan produktivitas, serta
-optimalisasi rantai nilai dan hilirisasi) berhasil mengubah peran sektor lahan dari sekadar sektor primer mentah menjadi mesin penggerak industri olahan
-lokal. Peningkatan nilai ITFL ini mengonfirmasi bahwa setiap pertumbuhan
-output pada sektor lahan di bawah skenario IMLAS-3 akan terdistribusi secara
-lebih luas sebagai input bagi sektor manufaktur, industri pengolahan,
-perdagangan, dan jasa terkait. 
+Pada kondisi BAU, rerata nilai ITFL sektor lahan berada pada tingkat yang sangat datar dan stagnan di kisaran 0,18 sepanjang periode 2025 hingga 2045. Hal ini mengindikasikan bahwa tanpa adanya intervensi struktur perekonomian, keterkaitan sektor lahan terhadap sektor hilir tidak mengalami penguatan dan cenderung bertindak sekadar sebagai penyedia bahan baku mentah tanpa integrasi rantai nilai yang memadai. Penerapan skenario IMLAS-3 memperlihatkan peningkatan rerata ITFL yang signifikan dan konsisten membentuk pola naik. Dimulai dari titik awal yang sama pada tahun 2025–2027 (0,18), nilai ITFL meningkat secara bertahap menembus 0,185 pada kisaran tahun 2030, melampaui 0,19 pada periode 2040–2041, hingga mencapai puncaknya mendekati 0,20 pada tahun 2045.
+
+Kenaikan bertahap pada kurva simulasi LAS membuktikan bahwa intervensi kebijakan (penguatan akses lahan, peningkatan produktivitas, serta optimalisasi rantai nilai dan hilirisasi) berhasil mengubah peran sektor lahan dari sekadar sektor primer mentah menjadi mesin penggerak industri olahan lokal. Peningkatan nilai ITFL ini mengonfirmasi bahwa setiap pertumbuhan output pada sektor lahan di bawah skenario IMLAS-3 akan terdistribusi secara lebih luas sebagai input bagi sektor manufaktur, industri pengolahan, perdagangan, dan jasa terkait.
 
 ```{r, echo = FALSE, warning=FALSE}
 ITFL_BAU <- mean(tabel_multiplier_sektoral$ITFL[DeskripsiSektor$Constrained == 1], na.rm = TRUE)
@@ -2419,31 +2427,28 @@ p_tren_ITFL
 
 ```
 
-
-## PDRB dengan mempertimbangkan peluruhan laju pertumbuhan (_Geometric Decay_)
+## PDRB dengan mempertimbangkan peluruhan laju pertumbuhan (*Geometric Decay*)
 
 Melakukan proyeksi total PDRB BUKECAP tahun 2026–2045 memakai pendekatan Bottom-Up (dihitung per sektor lalu dijumlahkan) dengan mempertimbangkan peluruhan laju pertumbuhan (geometric decay).
 
-1. Membaca & Membersihkan Data Historis (2010–2025)
-2. Menghitung Modal Awal Pertumbuhan (CAGR Historis)
-    - Menghitung laju Pertumbuhan Majemuk Tahunan (CAGR) setiap sektor selama 15 tahun terakhir (2010 s.d. 2025):
-      $$\text{CAGR} = \left( \frac{\text{PDRB}_{2025}}{\text{PDRB}_{2010}} \right)^{\frac{1}{15}} - 1$$
-    - Angka CAGR historis ini menjadi acuan dasar (baseline) untuk menentukan seberapa cepat suatu sektor tumbuh di awal periode proyeksi.
-3. Meracik 4 Skenario Kebijakan Masa Depan berdasarkan kombinasi 3 variabel utama:
-    * **$g_0$ (Pertumbuhan Awal tahun 2026):** Titik awal laju pertumbuhan.
-    * **$g_{\text{term}}$ (Pertumbuhan Jangka Panjang):** Target pertumbuhan minimal saat perekonomian melambat/matang.
-    * **$\lambda$ (*Lambda* / Laju Peluruhan):** Tingkat kecepatan penurunan pertumbuhan dari $g_0$ menuju $g_{\text{term}}$.
+1.  Membaca & Membersihkan Data Historis (2010–2025)
+2.  Menghitung Modal Awal Pertumbuhan (CAGR Historis)
+    -   Menghitung laju Pertumbuhan Majemuk Tahunan (CAGR) setiap sektor selama 15 tahun terakhir (2010 s.d. 2025): $$\text{CAGR} = \left( \frac{\text{PDRB}_{2025}}{\text{PDRB}_{2010}} \right)^{\frac{1}{15}} - 1$$
+    -   Angka CAGR historis ini menjadi acuan dasar (baseline) untuk menentukan seberapa cepat suatu sektor tumbuh di awal periode proyeksi.
+3.  Meracik 4 Skenario Kebijakan Masa Depan berdasarkan kombinasi 3 variabel utama:
+    -   $g_0$ (Pertumbuhan Awal tahun 2026): Titik awal laju pertumbuhan.
+    -   $g_{\text{term}}$ (Pertumbuhan Jangka Panjang): Target pertumbuhan minimal saat perekonomian melambat/matang.
+    -   $\lambda$ (*Lambda* / Laju Peluruhan): Tingkat kecepatan penurunan pertumbuhan dari $g_0$ menuju $g_{\text{term}}$.
 
 | Skenario | $g_0$ (Awal) | $g_{\text{term}}$ (Jangka Panjang) | $\lambda$ (Peluruhan) | Logika Ekonomi |
-| :--- | :--- | :--- | :--- | :--- |
+|:--------------|:--------------|:--------------|:--------------|:--------------|
 | **Tanpa Decay (Flat)** | Sama dengan CAGR | Sama dengan CAGR | 0,00 | Ekstrapolasi linier polos (asumsi pertumbuhan konstan selamanya). |
 | **Optimis (Decay Rendah)** | $\text{CAGR} \times 1,05$ | Sektor Pertanian dan Pertambangan (2,5%), Sektor Industri & Konstruksi (3,5%), Sektor Lainnya (5,5%) | Sektor Pertanian dan Pertambangan (2,5%), Sektor Industri & Konstruksi (1,5%), Sektor Lainnya (5,5%) | Intervensi berhasil, ekonomi melambat secara sangat halus. |
-| **Moderat (Decay Sedang)** | $\text{CAGR}$ | Sektor Pertanian dan Pertambangan (2%), Sektor Industri & Konstruksi (3%), Sektor Lainnya (4,5%)  | Sektor Pertanian dan Pertambangan (4%), Sektor Industri & Konstruksi (2,5%), Sektor Lainnya (2%)  | Tren umum pengembangan wilayah yang wajar. |
-| **Pesimis (Decay Tinggi)** | $\text{CAGR} \times 0,90$ | Sektor Pertanian dan Pertambangan (1,5%), Sektor Industri & Konstruksi (2,5%), Sektor Lainnya (3,5%)  | Sektor Pertanian dan Pertambangan (5%), Sektor Industri & Konstruksi (3,5%), Sektor Lainnya (3%)  | Ada hambatan eksternal/stagnasi sektor lahan secara cepat. |
-4. Simulasi Proyeksi Sektoral dan Agregasi (Bottom-Up)
-5. Visualisasi 
+| **Moderat (Decay Sedang)** | $\text{CAGR}$ | Sektor Pertanian dan Pertambangan (2%), Sektor Industri & Konstruksi (3%), Sektor Lainnya (4,5%) | Sektor Pertanian dan Pertambangan (4%), Sektor Industri & Konstruksi (2,5%), Sektor Lainnya (2%) | Tren umum pengembangan wilayah yang wajar. |
+| **Pesimis (Decay Tinggi)** | $\text{CAGR} \times 0,90$ | Sektor Pertanian dan Pertambangan (1,5%), Sektor Industri & Konstruksi (2,5%), Sektor Lainnya (3,5%) | Sektor Pertanian dan Pertambangan (5%), Sektor Industri & Konstruksi (3,5%), Sektor Lainnya (3%) | Ada hambatan eksternal/stagnasi sektor lahan secara cepat. |
 
-
+4.  Simulasi Proyeksi Sektoral dan Agregasi (Bottom-Up)
+5.  Visualisasi
 
 ```{r, echo = FALSE, warning=FALSE}
 # ==============================================================================
