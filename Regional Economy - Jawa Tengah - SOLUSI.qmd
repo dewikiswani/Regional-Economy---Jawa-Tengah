@@ -166,9 +166,9 @@ Analisis deskriptif dilakukan untuk melihat gambaran struktur dan dinamika kondi
     -   Verifikasi 2 (Total input primer): Verifikasi dilakukan dengan mengecek penjumlahan yang menyusun total input primer adalah kompensasi tenaga kerja, surplus usaha bruto, dan pajak atas produki
     -   Verifikasi 3 (Total Input): verifikasi dilakukan dengan mengecek penjumlahan yang menyusun total input adalah jumlah input antara. total impor, dan total input primer
     -   Verifikasi 4 (Total permintaan antara): verifikasi dilakukan dengan mengecek penjumlahan dari seluruh sektor pada kuadran 1
-    -   Verifikasi 5 (Total permintaan akhir)
-    -   Verifikasi 6 (Total output)
-    -   Verifikasi 7 (Total input dan total output)
+    -   Verifikasi 5 (Total permintaan akhir): verifikasi dilakukan dengan mengecek penjumlahan penyusun komponen total permintaan akhir yaitu pengeluaran konsusmsi rumah tangga (305), pengeluaran konsumsi pemerintah (302), pembentukan modal tetap bruto (303), perubahan stok (304), dan ekspor barang (305)
+    -   Verifikasi 6 (Total output): verifikasi dilakukan dengan mengecek penjumlahan antara total konsumsi akhir (final demand) dan output antara (180)
+    -   Verifikasi 7 (Total input dan total output): verifikasi dilakukan dengan mengecek nilai total input sama dengan total output
 2.  Menambahkan sektor baru pada tabel input-output yang telah tersedia dengan melabeli sektor tersebut dengan nama “Sektor ekonomi lain yang tidak jelas batasannya” dengan memasukan nilai transaksi sebesar 0 juta rupiah. Penambahan tersebut bertujuan untuk mengakomodasi kemungkinan aktivitas ekonomi yang belum memiliki batasan yang jelas untuk dikategorikan ke dalam sektor yang tersedia. Langkah ini dilakukan agar cakupan aktivitas ekonomi di BUKECAP dapat tetap terwakili melalui tabel input output secara komprehensif.
 3.  Hitung matrix Leontief dan jalankan persamaan X=(I-A)-1\*F. Hitung proporsi NTB terhadap Input setiap sektor. Cek apakah jumlah PDRB yang dihitung dengan persamaan di atas sama dengan PDRB yang tercantum pada tabel I-O.
     -   Penghitungan PDRB menggunakan pendekatan matriks leontief diawali dengan mengubah tabel input output ke dalam bentuk matriks Leontief lalu dikalikan dengan permintaan akhir sehingga nilai nilai total output.
@@ -2443,7 +2443,7 @@ Melakukan proyeksi total PDRB BUKECAP tahun 2026–2045 memakai pendekatan Botto
 | Skenario | $g_0$ (Awal) | $g_{\text{term}}$ (Jangka Panjang) | $\lambda$ (Peluruhan) | Logika Ekonomi |
 |:--------------|:--------------|:--------------|:--------------|:--------------|
 | **Tanpa Decay (Flat)** | Sama dengan CAGR | Sama dengan CAGR | 0,00 | Ekstrapolasi linier polos (asumsi pertumbuhan konstan selamanya). |
-| **Optimis (Decay Rendah)** | $\text{CAGR} \times 1,05$ | Sektor Pertanian dan Pertambangan (2,5%), Sektor Industri & Konstruksi (3,5%), Sektor Lainnya (5,5%) | Sektor Pertanian dan Pertambangan (2,5%), Sektor Industri & Konstruksi (1,5%), Sektor Lainnya (5,5%) | Intervensi berhasil, ekonomi melambat secara sangat halus. |
+| **Optimis (Decay Rendah)** | $\text{CAGR} \times 1,05$ | Sektor Pertanian dan Pertambangan (2,5%), Sektor Industri & Konstruksi (3,5%), Sektor Lainnya (5,5%) | Sektor Pertanian dan Pertambangan (2,5%), Sektor Industri & Konstruksi (1,5%), Sektor Lainnya (1%) | Intervensi berhasil, ekonomi melambat secara sangat halus. |
 | **Moderat (Decay Sedang)** | $\text{CAGR}$ | Sektor Pertanian dan Pertambangan (2%), Sektor Industri & Konstruksi (3%), Sektor Lainnya (4,5%) | Sektor Pertanian dan Pertambangan (4%), Sektor Industri & Konstruksi (2,5%), Sektor Lainnya (2%) | Tren umum pengembangan wilayah yang wajar. |
 | **Pesimis (Decay Tinggi)** | $\text{CAGR} \times 0,90$ | Sektor Pertanian dan Pertambangan (1,5%), Sektor Industri & Konstruksi (2,5%), Sektor Lainnya (3,5%) | Sektor Pertanian dan Pertambangan (5%), Sektor Industri & Konstruksi (3,5%), Sektor Lainnya (3%) | Ada hambatan eksternal/stagnasi sektor lahan secara cepat. |
 
