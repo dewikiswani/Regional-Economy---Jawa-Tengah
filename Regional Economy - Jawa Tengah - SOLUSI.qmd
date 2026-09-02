@@ -96,7 +96,11 @@ library(patchwork)
 library(writexl)
 library(plotly)
 library(scales) # Untuk format koma angka
+if (!requireNamespace("ggrepel", quietly = TRUE)) {
+  install.packages("ggrepel", repos = "https://cloud.r-project.org/")
+}
 library(ggrepel)
+
 
 # Data Ekonomi Provinsi
 # Baca Matriks Transaksi Inter-Industri Provinsi (Z_prov) 
