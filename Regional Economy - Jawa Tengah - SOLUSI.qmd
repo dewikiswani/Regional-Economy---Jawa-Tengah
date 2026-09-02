@@ -176,7 +176,13 @@ Analisis deskriptif dilakukan untuk melihat gambaran struktur dan dinamika kondi
     -   Penghitungan PDRB menggunakan pendekatan produksi dilakukan dengan menjumlahkan seluruh nilai tambah bruto yang didapatkan dari penjumlahan langsung komponen transaksi kompensasi tenaga kerja, surplus usaha bruto, dan pajak dikurang subsidi lainnya atas produksi pada tabel input output.
     -   Tahapan terakhir adalah melakukan validasi kesamaan hasil dari penghitugan kedua PDRB tersebut. Proses validasi tersebut menghasilkan keputusan bahwa komponen PDRB yang digunakan adalah kompensasi tenaga kerja, surplus usaha bruto, dan pajak dikurang subsidi lainnya atas produksi.
 4.  Amati baik-baik struktur sektor yang ada pada tabel I-O. Download PDRB Jawa Tengah, Kebumen, Banyumas dan Cilacap dalam 5-10 tahun terakhir dari situs BPS. Padankan dan klasifikasi ulang daftar sektor yang ada pada Tabel I-O dengan daftar sektor BPS. Selain itu, buat klasifikasi tambahan dengan mengelompokkan sektor menjadi sektor pertanian, kehutanan, perikanan kelautan, industri, pertambangan, jasa dan sektor lain-lain. Sebut saja klasifikasi baru ini sebagai Klasifikasi Sektor Makro (KSM). Hitung rerata pertumbuhan ekonomi tahunan (dalam satuan %) masing-masing sektor dan keseluruhan wilayah pada 5-10 tahun terakhir dengan menggunakan data BPS.
-5.  Hitung Backward dan Forward Linkage untuk semua sektor yang ada pada Tabel I-O. Dengan menggunakan BL dan FL, kelompokkan semua sektor ekonomi dalam menjadi empat kuadran: K1=BL dan FL tinggi; K2=BL tinggi, FL rendah; K3=BL rendah, FL tinggi; K4= BL dan FL rendah. Analisa hasilnya, dan simpulkan sektor-sektor kunci pada wilayah yang diamati. Analisa juga hasilnya jika menggunakan KSM.
+5.  Hitung Backward dan Forward Linkage untuk semua sektor yang ada pada Tabel I-O. Dengan menggunakan BL dan FL, kelompokkan semua sektor ekonomi dalam menjadi empat kuadran: 
+    - K1=BL dan FL tinggi; 
+    - K2=BL tinggi, FL rendah; 
+    - K3=BL rendah, FL tinggi; 
+    - K4= BL dan FL rendah. 
+    
+    Analisa hasilnya, dan simpulkan sektor-sektor kunci pada wilayah yang diamati. Analisa juga hasilnya jika menggunakan KSM.
 6.  Hitung Output, Income, dan Labour Multiplier dan Import multiplier. Analisa hasilnya pada tingkat sektor dan KSM. Hitung reratanya jika menggunakan KSM. Simpulkan mana sektor strategis pada wilayah yang diamati.
 7.  Gunakan hasil analisa pada nomor #5 dan #6 untuk menyimpulkan struktur ekonomi wilayah. Fokuskan pada sektor berbasis lahan dan coba simpulkan bagaimana kontribusi dan kedudukan sektor-sektor tersebut dalam perekonomian wilayah yang dianalisis.
 
@@ -273,7 +279,7 @@ Uraian Skenario:
         -   berawal dari Nilai akhir yang ingin di dapat yaitu $PDRB_{LAS 1+2+3} = Total Output_{LAS 1+2+3}\times NTBPropotion_{historis 2025}$
         -   Dimana $Total Output_{LAS 1+2+3} = LeontifInverse_{scenario_3} \times Final Demand_{LAs1+2}$
         -   dimana $LeontifInverse_{scenario_3} = (I-A)^{-1}=(I-\frac{Z}{X})^{-1}$
-        -   dimana \$Z = \text { dari Z hasil intervensi scenario 3} \$ dan \$X = \text {historis} X\_{2025} \$
+        -   dimana $Z = \text { dari Z hasil intervensi scenario 3}$ dan $X = \text {historis} X\_{2025}$
     c.  Untuk BUKECAP menerapkan skenario intervensi pada komposisi Export yang dirubah:
         -   Dari Sektor Padi ke Sektor 24, 25, 26
         -   Dari Sektor Kelapa dan tanaman penghasil minyak ke Sektor 24, 25, 26
@@ -722,9 +728,9 @@ p_import <- ggplot(top15_import, aes(x = reorder(nama_Sektor, Import_Effect), y 
   )
 
 # Plot 4: Top 15 Output Multiplier
-p_output <- ggplot(top15_import, aes(x = reorder(nama_Sektor, Output_Multiplier), y = Output_Multiplier)) +
+p_output <- ggplot(top15_output, aes(x = reorder(nama_Sektor, Output_Multiplier), y = Output_Multiplier)) +
   geom_col(fill = "orange", width = 0.75) +
-  geom_text(aes(label = round(Import_Effect, 4)), hjust = -0.15, size = 3) +
+  geom_text(aes(label = round(Output_Multiplier, 4)), hjust = -0.15, size = 3) +
   coord_flip() +
   labs(
     title = "Top 15 Sektor - Output Multiplier",
@@ -2450,6 +2456,102 @@ Melakukan proyeksi total PDRB BUKECAP tahun 2026–2045 memakai pendekatan Botto
 4.  Simulasi Proyeksi Sektoral dan Agregasi (Bottom-Up)
 5.  Visualisasi
 
+---
+
+### Metodologi Pemodelan Proyeksi PDRB
+
+Proyeksi PDRB dihitung menggunakan pendekatan **Geometric Growth Decay Model** (*Model Meluruh/Perlambatan Pertumbuhan Geometris*) secara *bottom-up* dari 17 sektor lapangan usaha.
+
+Secara sistematis, model ini memproyeksikan laju pertumbuhan PDRB tiap tahun ($g_t$) yang meluruh secara eksponensial dari **Laju Pertumbuhan Awal ($g_0$)** menuju **Laju Pertumbuhan Jangka Panjang/Terminal ($g_{\text{term}}$)** dengan kecepatan peluruhan yang diwakili oleh **Parameter Lambda ($\lambda$)**.
+
+
+### Rumusan Matematika Utama
+
+Perhitungan proyeksi sektoral menggunakan dua rumus utama:
+
+#### 1. Formulasi Laju Pertumbuhan Tahunan ($g_t$)
+$$g_t = g_{\text{term}} + (g_0 - g_{\text{term}}) \times (1 - \lambda)^t$$
+
+Di mana:
+
+* **$t$**: Urutan tahun proyeksi ($t = 1$ untuk tahun 2026, $t = 2$ untuk tahun 2027, $\dots$, $t = 20$ untuk tahun 2045).
+* **$g_0$ (*Initial Growth Rate*)**: Laju pertumbuhan awal pada tahun pertama proyeksi (2026), yang diturunkan dari *Compound Annual Growth Rate* (CAGR) historis 2010–2025:
+  $$\text{CAGR}_{\text{historis}} = \left( \frac{\text{PDRB}_{2025}}{\text{PDRB}_{2010}} \right)^{\frac{1}{15}} - 1$$
+* **$g_{\text{term}}$ (*Terminal Growth Rate*)**: Batas laju pertumbuhan jangka panjang yang diharapkan pada akhir periode simulasi (tahun 2045).
+* **$\lambda$ (*Decay Rate / Lambda*)**: Koefisien laju peluruhan geometris (kecepatan pergeseran dari $g_0$ menuju $g_{\text{term}}$). 
+  * Jika $\lambda = 0$, maka laju pertumbuhan tidak mengalami peluruhan ($g_t = g_0$ konstan).
+  * Semakin besar nilai $\lambda$, semakin cepat laju pertumbuhan meluruh mendekati $g_{\text{term}}$.
+
+#### 2. Akumulasi Nilai PDRB Sektoral ($Y_t$)
+$$Y_t = Y_{t-1} \times (1 + g_t)$$
+
+*(dengan $Y_0$ merupakan nilai PDRB sektoral pada tahun basis 2025)*.
+
+---
+
+### Parameter Skenario Kebijakan per Sektor
+
+```{r setup-decay-table, echo=FALSE, message=FALSE, warning=FALSE}
+
+# Data Parameter Skenario
+df_param_decay <- data.frame(
+  Skenario = c(
+    rep("Tanpa Decay (Flat CAGR)", 3),
+    rep("Optimis (Decay Rendah)", 3),
+    rep("Moderat (Decay Sedang)", 3),
+    rep("Pesimis (Decay Cepat)", 3)
+  ),
+  Kelompok = rep(c("Pertanian & Pertambangan", "Industri & Konstruksi", "Jasa-jasa (Sektor Lainnya)"), 4),
+  g0 = c(
+    "100% CAGR", "100% CAGR", "100% CAGR",
+    "105% CAGR", "105% CAGR", "105% CAGR",
+    "100% CAGR", "100% CAGR", "100% CAGR",
+    "90% CAGR", "90% CAGR", "90% CAGR"
+  ),
+  g_term = c(
+    "100% CAGR", "100% CAGR", "100% CAGR",
+    "2.50%", "3.50%", "5.50%",
+    "2.00%", "3.00%", "4.50%",
+    "1.50%", "2.50%", "3.50%"
+  ),
+  lambda = c(
+    "0.00%", "0.00%", "0.00%",
+    "2.50%", "1.50%", "1.00%",
+    "4.00%", "2.50%", "2.00%",
+    "5.00%", "3.50%", "3.00%"
+  ),
+  Keterangan = c(
+    rep("Pertumbuhan linier konstan tanpa kendala daya dukung.", 3),
+    "Resource-based: Meluruh lambat menuju batas jenuh 2.5%.",
+    "Sektor sekunder terdorong investasi, meluruh sangat lambat.",
+    "Sektor tersier menjadi penggerak utama, paling awet bertahan tinggi.",
+    "Mengalami keterbatasan lahan/sumber daya, meluruh sedang.",
+    "Meluruh wajar menuju pertumbuhan industri mature.",
+    "Meluruh wajar menuju pertumbuhan sektor jasa menengah.",
+    "Mengalami peluruhan paling cepat menuju titik jenuh.",
+    "Mengalami deakselerasi pertumbuhan cukup cepat.",
+    "Sektor jasa meluruh cepat akibat tekanan ekonomi."
+  )
+)
+
+# Cetak Tabel HTML
+knitr::kable(
+  df_param_decay,
+  row.names = FALSE,
+  caption = "Matriks Parameter Geometric Growth Decay Model per Skenario",
+  col.names = c("Skenario Kebijakan", "Kelompok Sektor", "Growth Awal (g₀)", "Target Terminal (g_term)", "Laju Decay (λ)", "Logika & Keterangan Ekonomi"),
+  align = c("l", "l", "c", "c", "c", "l")
+) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = TRUE,
+    position = "center"
+  ) %>%
+  collapse_rows(columns = 1, valign = "top") %>%
+  row_spec(0, bold = TRUE, extra_css = "border-top: 2px solid #ccc; border-bottom: 2px solid #ccc;")
+```
+
+---
 ```{r, echo = FALSE, warning=FALSE}
 # ==============================================================================
 # Script: Bottom-Up Multi-Scenario Total PDRB Projection (2026–2045)
