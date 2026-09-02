@@ -23,9 +23,9 @@ Terdapat 11 file data input berformat xlsx yang digunakan, yaitu:
 
 ```{r tabel-rapi, echo=FALSE, message=FALSE, warning=FALSE}
 library(knitr)
-if (!requireNamespace("kableExtra", quietly = TRUE)) {
-  install.packages("kableExtra")
-}
+# if (!requireNamespace("kableExtra", quietly = TRUE)) {
+#   install.packages("kableExtra")
+# }
 library(kableExtra)
 
 # Membuat data frame
@@ -2413,14 +2413,14 @@ p_tren_ITFL
 ```
 
 
-## PDRB dengan mempertimbangkan peluruhan laju pertumbuhan (geometric decay)
+## PDRB dengan mempertimbangkan peluruhan laju pertumbuhan (_Geometric Decay_)
 
 Melakukan proyeksi total PDRB BUKECAP tahun 2026–2045 memakai pendekatan Bottom-Up (dihitung per sektor lalu dijumlahkan) dengan mempertimbangkan peluruhan laju pertumbuhan (geometric decay).
 
 1. Membaca & Membersihkan Data Historis (2010–2025)
 2. Menghitung Modal Awal Pertumbuhan (CAGR Historis)
     - Menghitung laju Pertumbuhan Majemuk Tahunan (CAGR) setiap sektor selama 15 tahun terakhir (2010 s.d. 2025):
-      $ \text{CAGR} = \left( \frac{\text{PDRB}_{2025}}{\text{PDRB}_{2010}} \right)^{\frac{1}{15}} - 1 $$
+      $$\text{CAGR} = \left( \frac{\text{PDRB}_{2025}}{\text{PDRB}_{2010}} \right)^{\frac{1}{15}} - 1$$
     - Angka CAGR historis ini menjadi acuan dasar (baseline) untuk menentukan seberapa cepat suatu sektor tumbuh di awal periode proyeksi.
 3. Meracik 4 Skenario Kebijakan Masa Depan berdasarkan kombinasi 3 variabel utama:
     * **$g_0$ (Pertumbuhan Awal tahun 2026):** Titik awal laju pertumbuhan.
@@ -2430,9 +2430,9 @@ Melakukan proyeksi total PDRB BUKECAP tahun 2026–2045 memakai pendekatan Botto
 | Skenario | $g_0$ (Awal) | $g_{\text{term}}$ (Jangka Panjang) | $\lambda$ (Peluruhan) | Logika Ekonomi |
 | :--- | :--- | :--- | :--- | :--- |
 | **Tanpa Decay (Flat)** | Sama dengan CAGR | Sama dengan CAGR | 0,00 | Ekstrapolasi linier polos (asumsi pertumbuhan konstan selamanya). |
-| **Optimis (Decay Rendah)** | $\text{CAGR} \times 1,05$ | Sektor Jasa tinggi (5,5%), Pertanian rendah (2,5%) | Lambat (1% – 2,5%) | Intervensi berhasil, ekonomi melambat secara sangat halus. |
-| **Moderat (Decay Sedang)** | $\text{CAGR}$ | Sektor Jasa (4,5%), Pertanian (2,0%) | Sedang (2% – 4%) | Tren umum pengembangan wilayah yang wajar. |
-| **Pesimis (Decay Tinggi)** | $\text{CAGR} \times 0,90$ | Sektor Jasa (3,5%), Pertanian (1,5%) | Cepat (3% – 5%) | Ada hambatan eksternal/stagnasi sektor lahan secara cepat. |
+| **Optimis (Decay Rendah)** | $\text{CAGR} \times 1,05$ | Sektor Pertanian dan Pertambangan (2,5%), Sektor Industri & Konstruksi (3,5%), Sektor Lainnya (5,5%) | Sektor Pertanian dan Pertambangan (2,5%), Sektor Industri & Konstruksi (1,5%), Sektor Lainnya (5,5%) | Intervensi berhasil, ekonomi melambat secara sangat halus. |
+| **Moderat (Decay Sedang)** | $\text{CAGR}$ | Sektor Pertanian dan Pertambangan (2%), Sektor Industri & Konstruksi (3%), Sektor Lainnya (4,5%)  | Sektor Pertanian dan Pertambangan (4%), Sektor Industri & Konstruksi (2,5%), Sektor Lainnya (2%)  | Tren umum pengembangan wilayah yang wajar. |
+| **Pesimis (Decay Tinggi)** | $\text{CAGR} \times 0,90$ | Sektor Pertanian dan Pertambangan (1,5%), Sektor Industri & Konstruksi (2,5%), Sektor Lainnya (3,5%)  | Sektor Pertanian dan Pertambangan (5%), Sektor Industri & Konstruksi (3,5%), Sektor Lainnya (3%)  | Ada hambatan eksternal/stagnasi sektor lahan secara cepat. |
 4. Simulasi Proyeksi Sektoral dan Agregasi (Bottom-Up)
 5. Visualisasi 
 
@@ -2675,6 +2675,56 @@ df_tabel_formatted %>%
   row_spec(0, bold = TRUE, extra_css = "border-top: 2px solid #ccc; border-bottom: 2px solid #ccc;")
 
 
+# ==============================================================================
+# 7. MENYUSUN TABEL PER TAHUNAN (2025 S.D. 2045) DENGAN BARIS BASIS 2025
+# ==============================================================================
 
+# A. Ambil nilai basis Total PDRB Tahun 2025 dari data historis
+pdrb_2025_base <- df_total_historis %>%
+  filter(tahun == 2025) %>%
+  pull(pdrb)
+
+# B. Buat data frame baris tahun 2025 untuk seluruh skenario
+baris_2025 <- data.frame(
+  tahun = 2025,
+  pdrb = pdrb_2025_base,
+  skenario = unique(df_total_proyeksi$skenario)
+)
+
+# C. Gabungkan baris 2025 dengan data proyeksi (2026-2045), lalu ubah ke format Wide
+df_tabel_tahunan <- bind_rows(baris_2025, df_total_proyeksi) %>%
+  select(tahun, skenario, pdrb) %>%
+  pivot_wider(names_from = skenario, values_from = pdrb) %>%
+  arrange(tahun) # Memastikan urutan dari 2025 ke 2045
+
+# ==============================================================================
+# 8. FORMAT ANGKA & NOMOR TAHUN (MENGHILANGKAN KOMAN PADA TAHUN)
+# ==============================================================================
+
+df_tabel_formatted <- df_tabel_tahunan %>%
+  mutate(
+    Year = as.character(tahun), # Mencegah angka tahun diberi format koma (2,025 -> 2025)
+    across(where(is.numeric) & -tahun, ~ format(round(.x, 0), big.mark = ",")) # Format ribuan angka PDRB
+  ) %>%
+  select(Year, everything(), -tahun) # Pindahkan kolom Year ke paling depan & buang 'tahun'
+
+# ==============================================================================
+# 9. CETAK TABEL HTML RMARKDOWN
+# ==============================================================================
+
+df_tabel_formatted %>%
+  kable(
+    format = "html",
+    row.names = FALSE, # Menghilangkan nomor baris di paling kiri
+    caption = "Rangkuman Angka Total PDRB per Tahun (Miliar Tahun)", # Judul tabel
+    align = c("c", rep("r", ncol(df_tabel_formatted) - 1)),
+    col.names = c("Year", "Tanpa Decay", "Optimis", "Moderat", "Pesimis")
+  ) %>%
+  kable_styling(
+    bootstrap_options = c("striped", "hover", "condensed"),
+    full_width = TRUE,
+    position = "center"
+  ) %>%
+  row_spec(0, bold = TRUE, extra_css = "border-top: 2px solid #ccc; border-bottom: 2px solid #ccc;")
 
 ```
