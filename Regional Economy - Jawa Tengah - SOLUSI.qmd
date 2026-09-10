@@ -502,8 +502,8 @@ p_linkage <- ggplot(tabel_kuadran, aes(x = ITBL, y = ITFL, label = id_Sektor)) +
   labs(
     title = "Diagram Kuadran Backward & Forward Linkage Sektor Ekonomi",
     subtitle = "Garis Merah Putus-putus Menunjukkan Batas Indeks = 1.00",
-    x = "Indeks Total Backward Linkage (ITBL) / Indeks Daya Penyebaran (IDP)",
-    y = "Indeks Total Forward Linkage (ITFL) / Indeks Derajat Kepekaan (IDK)"
+    x = "Indeks Total Backward Linkage (ITBL)",
+    y = "Indeks Total Forward Linkage (ITFL)"
   ) +
   theme_minimal()
 
@@ -524,8 +524,8 @@ p_linkagePendek <- ggplot(tabel_kuadran, aes(x = ITBL, y = ITFL, label = NamaPen
   labs(
     title = "Diagram Kuadran Backward & Forward Linkage Sektor Ekonomi",
     subtitle = "Garis Merah Putus-putus Menunjukkan Batas Indeks = 1.00",
-    x = "Indeks Total Backward Linkage (ITBL) / Indeks Daya Penyebaran (IDP)",
-    y = "Indeks Total Forward Linkage (ITFL) / Indeks Derajat Kepekaan (IDK)"
+    x = "Indeks Total Backward Linkage (ITBL)",
+    y = "Indeks Total Forward Linkage (ITFL)"
   ) +
   theme_minimal() +
   theme(
@@ -536,6 +536,96 @@ p_linkagePendek <- ggplot(tabel_kuadran, aes(x = ITBL, y = ITFL, label = NamaPen
 
 # Tampilkan Plot
 p_linkagePendek
+
+# ==============================================================================
+# ANALISIS LINKAGE BERDASARKAN KATEGORI SEKTOR MAKRO (KSM)
+# ==============================================================================
+
+# 1. Agregasi Rata-Rata ITBL dan ITFL Berdasarkan Kolom KSM (17 Sektor Makro)
+tabel_kuadran_ksm <- tabel_kuadran %>%
+  filter(!is.na(KSM) & KSM != "") %>%
+  group_by(KSM) %>%
+  summarise(
+    Mean_ITBL = mean(ITBL, na.rm = TRUE),
+    Mean_ITFL = mean(ITFL, na.rm = TRUE),
+    Jumlah_Sektor_Mikro = n(),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    Kuadran = case_when(
+      Mean_ITBL > 1 & Mean_ITFL > 1  ~ "K1 (BL Tinggi, FL Tinggi)",
+      Mean_ITBL > 1 & Mean_ITFL <= 1 ~ "K2 (BL Tinggi, FL Rendah)",
+      Mean_ITBL <= 1 & Mean_ITFL > 1 ~ "K3 (BL Rendah, FL Tinggi)",
+      TRUE                           ~ "K4 (BL Rendah, FL Rendah)"
+    ),
+    Kategori = case_when(
+      Mean_ITBL > 1 & Mean_ITFL > 1  ~ "Sektor Kunci (Key Sector)",
+      Mean_ITBL > 1 & Mean_ITFL <= 1 ~ "Sektor Pendorong Hulu (Backward-Oriented)",
+      Mean_ITBL <= 1 & Mean_ITFL > 1 ~ "Sektor Pendukung Hilir (Forward-Oriented)",
+      TRUE                           ~ "Sektor Lemah / Terisolasi (Weak Sector)"
+    )
+  )
+
+# 2. Cetak Tabel Ringkasan Kuadran KSM (Format DT)
+df_tabel_kuadran_ksm <- datatable(
+  tabel_kuadran_ksm %>%
+    mutate(
+      Mean_ITBL = round(Mean_ITBL, 4),
+      Mean_ITFL = round(Mean_ITFL, 4)
+    ),
+  caption = "Tabel Indeks Linkage Agregat Klasifikasi Sektor Makro (KSM) BUKECAP 2025",
+  options = list(pageLength = 10, autoWidth = TRUE)
+)
+
+# Tampilkan Tabel
+df_tabel_kuadran_ksm
+
+# 3. Visualisasi Diagram Kuadran Linkage Tingkat KSM
+p_linkage_ksm <- ggplot(tabel_kuadran_ksm, aes(x = Mean_ITBL, y = Mean_ITFL, label = KSM)) +
+  geom_point(aes(color = Kuadran, size = Jumlah_Sektor_Mikro)) +
+  
+  # Garis Threshold Indeks = 1.00
+  geom_hline(yintercept = 1, linetype = "dashed", color = "red", linewidth = 0.8) +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "red", linewidth = 0.8) +
+  
+  # Repel Label Nama KSM agar tidak saling menutupi
+  geom_text_repel(
+    size = 3.8, 
+    fontface = "bold", 
+    max.overlaps = 20,
+    box.padding = 0.4
+  ) +
+  
+  # Kustomisasi Skala dan Label
+  scale_size_continuous(name = "Jumlah Sektor Mikro", range = c(3, 8)) +
+  scale_color_manual(
+    values = c(
+      "K1 (BL Tinggi, FL Tinggi)" = "#4CEDE5", # cyan
+      "K2 (BL Tinggi, FL Rendah)" = "#F080F2", # Biru
+      "K3 (BL Rendah, FL Tinggi)" = "#2E7D32", # kuning
+      "K4 (BL Rendah, FL Rendah)" = "#C62828"  # Merah
+    )
+  ) +
+  labs(
+    title = "Diagram Kuadran Linkage Sektor Ekonomi Berdasarkan KSM",
+    subtitle = "Agregasi Tingkat Klasifikasi Sektor Makro (KSM) BUKECAP 2025",
+    x = "Indeks Total Backward Linkage Rata-Rata (ITBL)",
+    y = "Indeks Total Forward Linkage Rata-Rata (ITFL)",
+    color = "Klasifikasi Kuadran"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    plot.title = element_text(face = "bold", hjust = 0.5, size = 14),
+    plot.subtitle = element_text(hjust = 0.5, color = "gray30"),
+    legend.position = "bottom",
+    legend.box = "vertical",
+    panel.grid.minor = element_blank()
+  )
+
+# Tampilkan Chart Kuadran KSM
+print(p_linkage_ksm)
+
+
 ```
 
 ## Multiplier Analysis
@@ -646,123 +736,143 @@ tabel_multiplier_sektoral <- tabel_kuadran_sektoral %>%
     Import_Multiplier_T1 = round(type1_import_mult, 4)
   )
 
-# membuat format dttable
-df_tabel_multiplier_sektoral <- datatable(tabel_multiplier_sektoral)
+# ==============================================================================
+# VISUALISASI MULTIPLIER DENGAN DIFFERENSIASI WARNA SEKTOR LAHAN VS NON-LAHAN
+# ==============================================================================
 
-# A. Top 15 Income Effect
-top15_income <- tabel_multiplier_sektoral %>%
-  arrange(desc(Income_Effect)) %>%
-  slice(1:15)
+# 1. Tambahkan informasi penanda Sektor Lahan (Constrained) ke tabel multiplier
+tabel_multiplier_sektoral <- tabel_multiplier_sektoral %>%
+  mutate(
+    Is_Lahan_Raw = DeskripsiSektor$Constrained[1:jml_sektor],
+    Status_Lahan = case_when(
+      Is_Lahan_Raw == 1 ~ "Sektor Berbasis Lahan",
+      TRUE              ~ "Sektor Non-Lahan"
+    ),
+    Status_Lahan = factor(Status_Lahan, levels = c("Sektor Berbasis Lahan", "Sektor Non-Lahan"))
+  )
 
-# B. Top 15 Labour Effect
-top15_labour <- tabel_multiplier_sektoral %>%
-  arrange(desc(Labour_Effect)) %>%
-  slice(1:15)
-
-# C. Top 15 Import Effect
-top15_import <- tabel_multiplier_sektoral %>%
-  arrange(desc(Import_Effect)) %>%
-  slice(1:15)
-
-# D. Top 15 Output Effect
-top15_output <- tabel_multiplier_sektoral %>%
+# 2. Ekstraksi Top 15 Sektor untuk Masing-masing Indikator
+top15_output_lahan <- tabel_multiplier_sektoral %>%
   arrange(desc(Output_Multiplier)) %>%
   slice(1:15)
 
-# ------------------------------------------------------------------------------
-# PEMBUATAN PLOT MASING-MASING INDIKATOR
-# ------------------------------------------------------------------------------
+top15_income_lahan <- tabel_multiplier_sektoral %>%
+  arrange(desc(Income_Effect)) %>%
+  slice(1:15)
 
-# Plot 1: Top 15 Income Effect
-p_income <- ggplot(top15_income, aes(x = reorder(nama_Sektor, Income_Effect), y = Income_Effect)) +
-  geom_col(fill = "#2e7d32", width = 0.75) +
+top15_labour_lahan <- tabel_multiplier_sektoral %>%
+  arrange(desc(Labour_Effect)) %>%
+  slice(1:15)
+
+top15_import_lahan <- tabel_multiplier_sektoral %>%
+  arrange(desc(Import_Effect)) %>%
+  slice(1:15)
+
+# ------------------------------------------------------------------------------
+# A. Plot 1: Top 15 Output Multiplier (Lahan = Hijau | Non-Lahan = Oranye)
+# ------------------------------------------------------------------------------
+p_output_colored <- ggplot(top15_output_lahan, aes(x = reorder(nama_Sektor, Output_Multiplier), y = Output_Multiplier, fill = Status_Lahan)) +
+  geom_col(width = 0.75) +
+  geom_text(aes(label = round(Output_Multiplier, 4)), hjust = -0.15, size = 3) +
+  coord_flip() +
+  scale_fill_manual(
+    values = c("Sektor Berbasis Lahan" = "#2E7D32", "Sektor Non-Lahan" = "#FFA500")
+  ) +
+  labs(
+    title = "Top 15 Sektor - Output Multiplier",
+    subtitle = "Diferensiasi Sektor Berbasis Lahan vs Sektor Non-Lahan",
+    x = NULL,
+    y = "Output Effect (Juta Rp / Juta Rp)",
+    fill = "Kategori Sektor"
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.25))) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 12, color = "#E65100"),
+    axis.text.y = element_text(size = 8.5),
+    legend.position = "bottom"
+  )
+
+# ------------------------------------------------------------------------------
+# B. Plot 2: Top 15 Income Effect (Lahan = Hijau | Non-Lahan = Cokelat)
+# ------------------------------------------------------------------------------
+p_income_colored <- ggplot(top15_income_lahan, aes(x = reorder(nama_Sektor, Income_Effect), y = Income_Effect, fill = Status_Lahan)) +
+  geom_col(width = 0.75) +
   geom_text(aes(label = round(Income_Effect, 4)), hjust = -0.15, size = 3) +
   coord_flip() +
+  scale_fill_manual(
+    values = c("Sektor Berbasis Lahan" = "#2E7D32", "Sektor Non-Lahan" = "#8D6E63") # Cokelat untuk Non-Lahan
+  ) +
   labs(
     title = "Top 15 Sektor - Income Effect",
     subtitle = "Dampak Pendapatan Rumah Tangga per Unit Permintaan Akhir",
     x = NULL,
-    y = "Income Effect (Juta Rupiah/Juta Rupiah)"
+    y = "Income Effect (Juta Rp / Juta Rp)",
+    fill = "Kategori Sektor"
   ) +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.2))) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.25))) +
   theme_minimal() +
   theme(
-    plot.title = element_text(face = "bold", size = 12, color = "#1b5e20"),
-    axis.text.y = element_text(size = 8.5)
+    plot.title = element_text(face = "bold", size = 12, color = "#4E342E"),
+    axis.text.y = element_text(size = 8.5),
+    legend.position = "bottom"
   )
 
-# Plot 2: Top 15 Labour Effect
-p_labour <- ggplot(top15_labour, aes(x = reorder(nama_Sektor, Labour_Effect), y = Labour_Effect)) +
-  geom_col(fill = "#1565c0", width = 0.75) +
+# ------------------------------------------------------------------------------
+# C. Plot 3: Top 15 Labour Effect (Lahan = Hijau | Non-Lahan = Biru)
+# ------------------------------------------------------------------------------
+p_labour_colored <- ggplot(top15_labour_lahan, aes(x = reorder(nama_Sektor, Labour_Effect), y = Labour_Effect, fill = Status_Lahan)) +
+  geom_col(width = 0.75) +
   geom_text(aes(label = round(Labour_Effect, 4)), hjust = -0.15, size = 3) +
   coord_flip() +
+  scale_fill_manual(
+    values = c("Sektor Berbasis Lahan" = "#2E7D32", "Sektor Non-Lahan" = "#1565C0")
+  ) +
   labs(
     title = "Top 15 Sektor - Labour Effect",
     subtitle = "Penyerapan Tenaga Kerja per Unit Permintaan Akhir",
     x = NULL,
-    y = "Labour Effect (Orang/Juta Rupiah)"
+    y = "Labour Effect (Orang / Juta Rp)",
+    fill = "Kategori Sektor"
   ) +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.2))) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.25))) +
   theme_minimal() +
   theme(
-    plot.title = element_text(face = "bold", size = 12, color = "#0d47a1"),
-    axis.text.y = element_text(size = 8.5)
+    plot.title = element_text(face = "bold", size = 12, color = "#0D47A1"),
+    axis.text.y = element_text(size = 8.5),
+    legend.position = "bottom"
   )
 
-# Plot 3: Top 15 Import Effect
-p_import <- ggplot(top15_import, aes(x = reorder(nama_Sektor, Import_Effect), y = Import_Effect)) +
-  geom_col(fill = "#c62828", width = 0.75) +
+# ------------------------------------------------------------------------------
+# D. Plot 4: Top 15 Import Effect (Lahan = Hijau | Non-Lahan = Merah)
+# ------------------------------------------------------------------------------
+p_import_colored <- ggplot(top15_import_lahan, aes(x = reorder(nama_Sektor, Import_Effect), y = Import_Effect, fill = Status_Lahan)) +
+  geom_col(width = 0.75) +
   geom_text(aes(label = round(Import_Effect, 4)), hjust = -0.15, size = 3) +
   coord_flip() +
+  scale_fill_manual(
+    values = c("Sektor Berbasis Lahan" = "#2E7D32", "Sektor Non-Lahan" = "#C62828")
+  ) +
   labs(
-    title = "Top 15 Sektor - Import Effect (Kebocoran Ekonomi)",
+    title = "Top 15 Sektor - Import Effect (Kebocoran Impor)",
     subtitle = "Dampak Kebocoran Impor Input per Unit Permintaan Akhir",
     x = NULL,
-    y = "Import Effect (Juta Rupiah/Juta Rupiah)"
+    y = "Import Effect (Juta Rp / Juta Rp)",
+    fill = "Kategori Sektor"
   ) +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.2))) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.25))) +
   theme_minimal() +
   theme(
-    plot.title = element_text(face = "bold", size = 12, color = "#b71c1c"),
-    axis.text.y = element_text(size = 8.5)
+    plot.title = element_text(face = "bold", size = 12, color = "#B71C1C"),
+    axis.text.y = element_text(size = 8.5),
+    legend.position = "bottom"
   )
-
-# Plot 4: Top 15 Output Multiplier
-p_output <- ggplot(top15_output, aes(x = reorder(nama_Sektor, Output_Multiplier), y = Output_Multiplier)) +
-  geom_col(fill = "orange", width = 0.75) +
-  geom_text(aes(label = round(Output_Multiplier, 4)), hjust = -0.15, size = 3) +
-  coord_flip() +
-  labs(
-    title = "Top 15 Sektor - Output Multiplier",
-    x = NULL,
-    y = "Output Effect (Juta Rupiah/Juta Rupiah)"
-  ) +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.2))) +
-  theme_minimal() +
-  theme(
-    plot.title = element_text(face = "bold", size = 12, color = "orange"),
-    axis.text.y = element_text(size = 8.5)
-  )
-
-p_output
-# p_import
-# p_labour
-# p_income
 
 # ------------------------------------------------------------------------------
-# 3. GABUNGKAN DAN TAMPILKAN GRAFIK
+# PANGGIL GRAFIK MASING-MASING
 # ------------------------------------------------------------------------------
 
-# Penggabungan 3 Plot dalam 1 Tampilan Kolom (Atas-Tengah-Bawah)
-gabungan_plot <- p_income / p_labour / p_import / p_output +
-  plot_annotation(
-    title = "ANALISIS SEKTOR STRATEGIS REGIONAL (BUKECAP)",
-    subtitle = "Perbandingan 15 Sektor Tertinggi Berdasarkan Indikator Dampak Pengganda Ekonomi",
-    theme = theme(
-      plot.title = element_text(face = "bold", size = 16, hjust = 0.5),
-      plot.subtitle = element_text(size = 11, hjust = 0.5)
-    )
-  )
+p_output_colored
 
 
 ```
@@ -774,7 +884,7 @@ Hasil analisis labour effect di wilayah BUKECAP tahun 2025 menunjukkan bahwa sek
 Berbeda dengan hasil output multiplier, sektor berbasis lahan cukup dominan dalam labour effect. Dari 15 sektor dengan nilai labour effect tertinggi, sebagian besar merupakan sektor berbasis lahan, antara lain tembakau, tebu, hortikultura, kelapa, rempah, tanaman pangan, padi, peternakan, jagung, kopi, serta jasa pertanian, pascapanen, perburuan, dan kegiatan penunjang. Hal ini menunjukkan bahwa sektor berbasis lahan di BUKECAP memiliki peran yang relatif besar dalam penyerapan tenaga kerja.
 
 ```{r, echo = FALSE, warning=FALSE}
-p_labour
+p_labour_colored
 
 ```
 
@@ -783,7 +893,7 @@ Analisis income effect (efek pendapatan) digunakan untuk mengetahui besarnya dam
 Dari 15 sektor dengan nilai income effect tertinggi, belum terdapat sektor berbasis lahan. Kelompok sektor dengan efek pendapatan tertinggi masih didominasi oleh sektor jasa, pemerintahan, keuangan, perdagangan, dan aktivitas penunjang ekonomi. Hal ini menunjukkan bahwa berdasarkan struktur perekonomian BUKECAP tahun 2025, sektor-sektor tersebut memiliki kemampuan yang lebih besar dalam menghasilkan pendapatan rumah tangga dibandingkan sektor berbasis lahan.
 
 ```{r, echo = FALSE, warning=FALSE}
-p_income
+p_income_colored
 
 ```
 
@@ -796,7 +906,7 @@ Selanjutnya, sektor industri barang logam, bukan mesin dan peralatannya (0,3698)
 Dari 15 sektor dengan nilai import effect tertinggi, tidak terdapat sektor berbasis lahan. Hal ini menunjukkan bahwa sektor berbasis lahan di BUKECAP relatif memiliki kebutuhan input impor yang lebih rendah dibandingkan sektor-sektor lainnya. Kondisi tersebut dapat menjadi indikasi bahwa pengembangan sektor berbasis lahan berpotensi menghasilkan kebocoran impor yang relatif lebih kecil.
 
 ```{r, echo = FALSE, warning=FALSE}
-p_import
+p_import_colored
 
 ```
 
@@ -2166,7 +2276,7 @@ p_serapan_tk <- ggplot(df_long, aes(x = Year, y = TK, color = Skenario, group = 
   
   # --- Judul dan Label Sumbu ---
   labs(
-    title = "Proyeksi Total Tenaga Kerja\n2026–2045",
+    title = "Proyeksi Searapan Tenaga Kerja\n2026–2045",
     x = NULL,
     y = "Serapan TK (Orang)"
   ) +
