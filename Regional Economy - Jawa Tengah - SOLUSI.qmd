@@ -489,26 +489,6 @@ tabel_kuadran <- tabel_linkage %>%
 tabel_kuadran <- tabel_kuadran %>%
   left_join(DeskripsiSektor, by = c("nama_Sektor" = "NamaSektor")) # Sesuaikan nama kolom kunci
 
-# membuat format dttable
-df_tabel_kuadran <- datatable(tabel_kuadran)
-
-
-p_linkage <- ggplot(tabel_kuadran, aes(x = ITBL, y = ITFL, label = id_Sektor)) +
-  geom_point(aes(color = Kuadran), size = 3) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = "red") +
-  geom_vline(xintercept = 1, linetype = "dashed", color = "red") +
-  # geom_text(vjust = -0.7, size = 2.5, check_overlap = TRUE) +
-  
-  labs(
-    title = "Diagram Kuadran Backward & Forward Linkage Sektor Ekonomi",
-    subtitle = "Garis Merah Putus-putus Menunjukkan Batas Indeks = 1.00",
-    x = "Indeks Total Backward Linkage (ITBL)",
-    y = "Indeks Total Forward Linkage (ITFL)"
-  ) +
-  theme_minimal()
-
-p_linkage
-
 # 4. VISUALISASI DIAGRAM KUADRAN (MENGGUNAKAN LABELS = NamaPendek)
 p_linkagePendek <- ggplot(tabel_kuadran, aes(x = ITBL, y = ITFL, label = NamaPendek)) +
   geom_point(aes(color = Kuadran), size = 3) +
@@ -566,19 +546,6 @@ tabel_kuadran_ksm <- tabel_kuadran %>%
     )
   )
 
-# 2. Cetak Tabel Ringkasan Kuadran KSM (Format DT)
-df_tabel_kuadran_ksm <- datatable(
-  tabel_kuadran_ksm %>%
-    mutate(
-      Mean_ITBL = round(Mean_ITBL, 4),
-      Mean_ITFL = round(Mean_ITFL, 4)
-    ),
-  caption = "Tabel Indeks Linkage Agregat Klasifikasi Sektor Makro (KSM) BUKECAP 2025",
-  options = list(pageLength = 10, autoWidth = TRUE)
-)
-
-# Tampilkan Tabel
-df_tabel_kuadran_ksm
 
 # 3. Visualisasi Diagram Kuadran Linkage Tingkat KSM
 p_linkage_ksm <- ggplot(tabel_kuadran_ksm, aes(x = Mean_ITBL, y = Mean_ITFL, label = KSM)) +
@@ -600,10 +567,10 @@ p_linkage_ksm <- ggplot(tabel_kuadran_ksm, aes(x = Mean_ITBL, y = Mean_ITFL, lab
   scale_size_continuous(name = "Jumlah Sektor Mikro", range = c(3, 8)) +
   scale_color_manual(
     values = c(
-      "K1 (BL Tinggi, FL Tinggi)" = "#4CEDE5", # cyan
-      "K2 (BL Tinggi, FL Rendah)" = "#F080F2", # Biru
-      "K3 (BL Rendah, FL Tinggi)" = "#2E7D32", # kuning
-      "K4 (BL Rendah, FL Rendah)" = "#C62828"  # Merah
+      "K1 (BL Tinggi, FL Tinggi)" = "#C62828",  # Merah
+      "K2 (BL Tinggi, FL Rendah)" = "#2E7D32", # hijau
+      "K3 (BL Rendah, FL Tinggi)" = "#4CEDE5", # cyan
+      "K4 (BL Rendah, FL Rendah)" = "#F080F2" # ungu
     )
   ) +
   labs(
@@ -624,6 +591,21 @@ p_linkage_ksm <- ggplot(tabel_kuadran_ksm, aes(x = Mean_ITBL, y = Mean_ITFL, lab
 
 # Tampilkan Chart Kuadran KSM
 print(p_linkage_ksm)
+
+
+# 2. Cetak Tabel Ringkasan Kuadran KSM (Format DT)
+df_tabel_kuadran_ksm <- datatable(
+  tabel_kuadran_ksm %>%
+    mutate(
+      Mean_ITBL = round(Mean_ITBL, 4),
+      Mean_ITFL = round(Mean_ITFL, 4)
+    ),
+  caption = "Tabel Indeks Linkage Agregat Klasifikasi Sektor Makro (KSM) BUKECAP 2025",
+  options = list(pageLength = 10, autoWidth = TRUE)
+)
+
+# Tampilkan Tabel
+df_tabel_kuadran_ksm
 
 
 ```
