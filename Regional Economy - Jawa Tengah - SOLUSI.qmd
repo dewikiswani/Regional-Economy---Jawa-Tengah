@@ -145,7 +145,7 @@ jml_sektor <- 66
 kolom_Sektor <- paste0("X", 1:66) # Membuat daftar nama kolom x1, x2, ..., x66 secara otomatis
 namaSektor <- as.vector(io[1:jml_sektor,"Nama.Sektor"])
 kolom_FD <- paste0("X309")
-kolom_TOutput <- "X700"
+kolom_TOutput <- "X310"
 
 baris_pjkProduk <- 68
 baris_impor <- 69  # Baris Impor / Input Luar Daerah
